@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import os
 from datetime import timedelta
 
@@ -10,7 +11,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.ids import new_id, new_public_key, new_secret_key
-from app.core.security import hash_password, sha256_hex
+from app.core.security import hash_password, sha256_hex, verify_password
+
+log = logging.getLogger("sapa.bootstrap")
+
+_TRUTHY = {"1", "true", "yes", "y", "on"}
+
+
+def _flag(name: str, default: str = "0") -> bool:
+    return os.environ.get(name, default).strip().lower() in _TRUTHY
 from app.models import (
     Agent,
     ApiKey,
@@ -149,10 +158,80 @@ async def seed(db: AsyncSession) -> None:
         )
     )
 
-    if os.environ.get("SEED_DEMO", "1" if settings.environment == "development" else "0") == "1":
+    if _flag("SEED_DEMO", "1" if settings.environment == "development" else "0"):
         await _seed_demo_conversations(db, agent.id)
 
     await db.commit()
+
+
+async def ensure_admin(db: AsyncSession) -> None:
+    """Dijalankan setiap boot — menjamin workspace + admin bootstrap selalu ada.
+
+    `seed()` hanya mengisi DB yang benar-benar kosong. Di produksi (volume
+    `/data` yang sudah terisi dari deploy sebelumnya) hal itu berarti:
+
+    * admin yang terhapus / email-nya diganti lewat `ADMIN_EMAIL` tidak pernah
+      dibuat ulang → login selalu 401,
+    * `ADMIN_PASSWORD` yang diubah di Coolify tidak pernah diterapkan,
+    * workspace hilang → `seed()` jalan ulang dan menimpa agent yang sudah ada.
+
+    Fungsi ini idempoten dan aman dipanggil berulang. Set
+    `RESET_ADMIN_PASSWORD=1` sekali untuk memaksa password admin disamakan
+    dengan `ADMIN_PASSWORD` (lalu matikan lagi env-nya).
+    """
+    email = (settings.admin_email or "admin@sapa.ai").strip().lower()
+
+    ws = (await db.execute(select(Workspace).limit(1))).scalars().first()
+    if not ws:
+        ws = Workspace(id=new_id("workspace"), name=settings.workspace_name, slug="acme-store")
+        db.add(ws)
+        await db.flush()
+        log.info("[bootstrap] workspace dibuat: %s", ws.name)
+
+    user = (await db.execute(select(User).where(User.email == email))).scalar_one_or_none()
+
+    if not user:
+        db.add(
+            User(
+                id=new_id("user"),
+                workspace_id=ws.id,
+                email=email,
+                name=settings.admin_name,
+                password_hash=hash_password(settings.admin_password),
+                role="owner",
+            )
+        )
+        await db.commit()
+        log.warning(
+            "[bootstrap] admin %s TIDAK ADA di database → dibuat ulang dengan ADMIN_PASSWORD saat ini.",
+            email,
+        )
+        return
+
+    changed = False
+
+    # Perbaiki user yang workspace-nya dangling (mis. DB hasil restore sebagian).
+    if not user.workspace_id or not (
+        await db.execute(select(Workspace).where(Workspace.id == user.workspace_id))
+    ).scalar_one_or_none():
+        user.workspace_id = ws.id
+        changed = True
+        log.warning("[bootstrap] admin %s dikaitkan ulang ke workspace %s", email, ws.id)
+
+    if _flag("RESET_ADMIN_PASSWORD") and not verify_password(
+        settings.admin_password, user.password_hash
+    ):
+        user.password_hash = hash_password(settings.admin_password)
+        changed = True
+        log.warning(
+            "[bootstrap] RESET_ADMIN_PASSWORD=1 → password admin %s disamakan dengan ADMIN_PASSWORD.",
+            email,
+        )
+
+    if changed:
+        await db.commit()
+    else:
+        log.info("[bootstrap] admin %s siap (login via /login)", email)
 
 
 async def _seed_demo_conversations(db: AsyncSession, agent_id: str) -> None:

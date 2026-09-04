@@ -6,6 +6,7 @@ from fastapi import Depends, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.db import get_db
 from app.core.security import decode_session_token, sha256_hex
 from app.models import Agent, ApiKey, User
@@ -25,7 +26,9 @@ async def get_current_user(
     if auth.lower().startswith("bearer "):
         token = auth[7:].strip()
     if not token:
-        token = request.cookies.get("sapa_session")
+        # Nama cookie dari settings (bukan hardcode) + toleransi quote/padding.
+        raw = request.cookies.get(settings.session_cookie) or ""
+        token = raw.strip().strip('"').strip("'").strip() or None
     if not token:
         raise CREDENTIALS_ERROR
     subject = decode_session_token(token)

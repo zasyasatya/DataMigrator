@@ -1,10 +1,15 @@
-.PHONY: install install-api build-widget dev-api dev-web build test test-api typecheck run docker-up
+.PHONY: install install-api build-widget dev-api dev-web build test test-api typecheck run docker-up verify
 
 run:
 	python3 run.py
 
 docker-up:
 	python3 run.py docker
+
+# Smoke test end-to-end ke URL yang sudah hidup (default lokal :3000).
+# Contoh produksi:  make verify BASE=https://sapa.zasya.id
+verify:
+	BASE=$(or $(BASE),http://127.0.0.1:3000) node scripts/verify-deploy.mjs
 
 install: install-api
 	npm install --no-audit --no-fund

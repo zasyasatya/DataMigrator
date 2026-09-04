@@ -32,17 +32,46 @@ fullscreen, widget fullscreen di HP.
 - `streamChat(path, body, {onMeta,onDelta,onDone,onError})` — POST lalu konsumsi
   SSE (`event: meta/delta/done/engine_fallback`) via `ReadableStream` reader.
 
-## Proxy same-origin (`next.config.ts`)
+## Proxy same-origin (runtime, `lib/proxy.ts`)
 
-```ts
-rewrites: /api/v1/:path* → API_INTERNAL_URL/api/v1/:path*
-          /w/:path*        → API_INTERNAL_URL/w/:path*
-          /embed/:path*    → API_INTERNAL_URL/embed/:path*
+```
+app/api/v1/[...path]/route.ts  →  API_INTERNAL_URL/api/v1/*
+app/w/[...path]/route.ts       →  API_INTERNAL_URL/w/*        (SSE widget)
+app/embed/[...path]/route.ts   →  API_INTERNAL_URL/embed/*    (widget.js)
+app/embed/route.ts             →  API_INTERNAL_URL/embed      (dok integrasi)
+app/healthz/route.ts           →  diagnostik web + keterjangkauan API
 ```
 
-`API_INTERNAL_URL` default `http://localhost:8000` (lokal) / `http://api:8000`
-(compose) / `http://127.0.0.1:8000` (image all-in-one). Karena same-origin,
-tanpa setup CORS/cookie di sisi pelanggan.
+`API_INTERNAL_URL` default `http://127.0.0.1:8000` (lokal/all-in-one) atau
+`http://api:8000` (compose). Karena same-origin, tanpa setup CORS/cookie di sisi
+pelanggan.
+
+> **Jangan kembalikan ke `rewrites()` di `next.config.ts`.** `rewrites()` dibekukan
+> saat `next build`, jadi `API_INTERNAL_URL` runtime diabaikan dan container selalu
+> mem-proxy ke `http://localhost:8000` → di compose tidak ada backend di sana, dan
+> di all-in-one `localhost` bisa resolve ke IPv6 `::1` (uvicorn hanya listen IPv4).
+> Gejala keduanya sama: **login gagal walau deploy sukses**. Route handler membaca env
+> setiap request, menormalkan `localhost`→`127.0.0.1`, meneruskan `Set-Cookie` &
+> `x-forwarded-proto`, serta men-*stream* SSE tanpa buffering.
+
+## Landing page contoh (`/landing`)
+
+`app/landing/page.tsx` adalah **server component** murni: hero, produk, keunggulan,
+testimoni, FAQ (`<details>` bawaan HTML → tetap jalan tanpa JS), CTA, dan footer —
+sehingga HTML-nya lengkap untuk SEO & first paint. Hanya dua komponen kecil yang
+client-side:
+
+| Komponen | Tanggung jawab |
+|---|---|
+| `components/landing/ChatbotEmbed.tsx` | baca key dari `?key=`/`localStorage`, suntik `<script src="/embed/widget.js?k=…">`, pasang bridge `window.SapaAsk(text)`, tampilkan petunjuk bila key belum ada |
+| `components/landing/AskButton.tsx` | tombol "Tanya" → buka chat + kirim pesan; fallback ke `/agents` bila widget belum aktif |
+
+> `useSearchParams()` di dalam Suspense membuat seluruh halaman bailout ke CSR bila
+> dipasang di page utama — itulah sebabnya pembacaan query diisolasi ke
+> `ChatbotEmbed`, bukan di `page.tsx`.
+
+Buka `/landing?key=pk_…` (key dari Builder → tab Integrasi). Untuk situs eksternal
+tanpa build, pakai `examples/landing/index.html` (satu file, dukung `?key=` & `?host=`).
 
 ## Integrasi ke website pelanggan (satu baris)
 

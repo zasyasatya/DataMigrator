@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Acme Store — Kopi Specialty Indonesia, Disangrai Minggu Ini</title>
+<meta name="description" content="Contoh landing page dengan chatbot Sapa AI terintegrasi lewat satu baris script." />
+<style>
+  :root{
+    --bg:#FBF7F0; --ink:#2A2016; --ink2:#5D4E3C; --ink3:#7A6A56;
+    --line:#EFE5D6; --card:#fff; --soft:#F6EFE4; --chip:#F3EBDD; --accent:#8B5E2B;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased;line-height:1.55}
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:1100px;margin:0 auto;padding:0 24px}
+  /* header */
+  header{position:sticky;top:0;z-index:30;background:rgba(251,247,240,.88);
+    backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+  .nav{display:flex;align-items:center;gap:28px;padding:16px 0}
+  .logo{display:flex;align-items:center;gap:9px;font-weight:900;letter-spacing:-.02em;font-size:17px}
+  .logo i{width:32px;height:32px;border-radius:11px;background:var(--ink);color:#fff;
+    display:grid;place-items:center;font-style:normal;font-size:16px}
+  .nav ul{display:flex;gap:22px;list-style:none;margin:0;padding:0;font-size:13.5px;font-weight:600;color:#6B5B47}
+  .nav .spacer{margin-left:auto}
+  .btn{border:0;cursor:pointer;font:inherit;font-weight:700;border-radius:999px;padding:11px 20px;
+    background:var(--ink);color:#fff;font-size:13px;transition:.18s}
+  .btn:hover{background:#3D2F20}
+  .btn.ghost{background:#fff;border:1px solid #DCCFBB;color:#3D3122}
+  .btn.ghost:hover{border-color:#C0AC8D}
+  .btn.soft{background:var(--chip);color:#6B4E22}
+  .btn.soft:hover{background:#EADFC9}
+  /* hero */
+  .hero{position:relative;overflow:hidden;padding:64px 0 56px}
+  .hero::before{content:"";position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(46rem 26rem at 82% -8%,rgba(214,178,124,.35),transparent 62%),
+               radial-gradient(38rem 24rem at 4% 8%,rgba(176,133,86,.20),transparent 60%)}
+  .hero-grid{position:relative;display:grid;gap:48px;align-items:center}
+  @media(min-width:900px){.hero-grid{grid-template-columns:1.05fr .95fr}}
+  .pill{display:inline-flex;align-items:center;gap:8px;border:1px solid #E3D8C6;background:rgba(255,255,255,.7);
+    border-radius:999px;padding:6px 14px;font-size:12px;font-weight:700;color:#7A5A2E}
+  h1{font-size:clamp(38px,6vw,56px);line-height:1.06;letter-spacing:-.03em;margin:22px 0 0;font-weight:900}
+  h1 span{background:linear-gradient(90deg,#8B5E2B,#C08A3E);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .lede{margin:22px 0 0;max-width:52ch;font-size:16px;color:var(--ink2)}
+  .cta{display:flex;flex-wrap:wrap;gap:12px;margin-top:30px}
+  .cta .btn{padding:14px 24px;font-size:14px}
+  .trust{display:flex;flex-wrap:wrap;gap:8px 28px;margin-top:34px;font-size:13px;font-weight:600;color:#6B5B47}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:32px;padding:28px;
+    box-shadow:0 34px 80px -38px rgba(59,38,20,.55)}
+  .card .top{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;font-weight:700;color:#6B5B47}
+  .tag{background:var(--chip);color:#7A5A2E;border-radius:999px;padding:5px 12px;font-size:11px;
+    text-transform:uppercase;letter-spacing:.06em}
+  .visual{margin:22px 0;border-radius:24px;background:linear-gradient(135deg,#F6EFE3,#EBDFCB);
+    display:grid;place-items:center;padding:56px 0;font-size:76px}
+  .price{font-size:26px;font-weight:900;letter-spacing:-.02em}
+  .row{display:flex;justify-content:space-between;align-items:flex-end;margin-top:22px}
+  /* sections */
+  section{padding:60px 0}
+  .band{background:var(--soft);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  h2{font-size:30px;letter-spacing:-.025em;margin:0;font-weight:900}
+  .sub{margin:8px 0 0;color:#6B5B47;font-size:14.5px}
+  .grid{display:grid;gap:20px;margin-top:34px}
+  @media(min-width:640px){.g2{grid-template-columns:repeat(2,1fr)}}
+  @media(min-width:900px){.g4{grid-template-columns:repeat(4,1fr)}.g3{grid-template-columns:repeat(3,1fr)}}
+  .tile{background:var(--card);border:1px solid var(--line);border-radius:26px;padding:22px;transition:.18s}
+  .tile:hover{transform:translateY(-3px);border-color:#DCC9AC;box-shadow:0 26px 60px -30px rgba(59,38,20,.6)}
+  .ico{width:44px;height:44px;border-radius:16px;background:var(--chip);color:#7A5A2E;display:grid;place-items:center;font-size:20px}
+  .tile h3{margin:14px 0 6px;font-size:15.5px}
+  .tile p{margin:0;font-size:13px;color:#6B5B47}
+  .prod .visual{font-size:46px;padding:38px 0;margin:0}
+  .prod h3{font-size:15.5px;margin:14px 0 4px}
+  .prod .note{font-size:12.5px;color:var(--ink3);margin:0}
+  .prod .row{margin-top:16px;padding-top:16px;border-top:1px solid #F1E8DA;align-items:center}
+  /* testimonial */
+  .stars{color:#E0A93B;font-size:13px;letter-spacing:2px}
+  blockquote{margin:14px 0 0;font-size:14px;color:#3D3122}
+  .who{margin-top:18px;padding-top:16px;border-top:1px solid #F1E8DA;font-size:13.5px;font-weight:700}
+  .who small{display:block;font-weight:500;color:var(--ink3);font-size:12px}
+  /* faq */
+  details{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:0 20px;margin-bottom:12px}
+  summary{cursor:pointer;font-weight:700;font-size:14.5px;padding:16px 0;list-style:none;
+    display:flex;justify-content:space-between;gap:16px;align-items:center}
+  summary::-webkit-details-marker{display:none}
+  summary::after{content:"+";color:#9A8B77;font-size:20px;font-weight:400}
+  details[open] summary::after{content:"–"}
+  details p{margin:0 0 16px;font-size:13.5px;color:var(--ink2)}
+  .ask{border:0;background:none;cursor:pointer;font:inherit;font-size:12.5px;font-weight:700;color:var(--accent);padding:0}
+  .ask:hover{text-decoration:underline}
+  /* cta band */
+  .dark{position:relative;overflow:hidden;background:var(--ink);border-radius:32px;padding:56px 28px;text-align:center;color:#fff}
+  .dark::before{content:"";position:absolute;inset:0;
+    background:radial-gradient(34rem 20rem at 50% -20%,rgba(214,178,124,.35),transparent 65%)}
+  .dark>*{position:relative}
+  .dark h2{color:#fff}
+  .dark p{margin:12px auto 0;max-width:54ch;color:#D8C9B4;font-size:14.5px}
+  .dark .cta{justify-content:center;margin-top:28px}
+  .dark .btn{background:#fff;color:var(--ink)}
+  .dark .btn:hover{background:#F3EBDD}
+  .dark .btn.ghost{background:transparent;border-color:#5A4A36;color:#fff}
+  .dark .btn.ghost:hover{background:#3A2E21}
+  /* footer */
+  footer{background:var(--soft);border-top:1px solid var(--line);padding:44px 0 0}
+  .fgrid{display:grid;gap:30px}
+  @media(min-width:640px){.fgrid{grid-template-columns:repeat(2,1fr)}}
+  @media(min-width:900px){.fgrid{grid-template-columns:repeat(4,1fr)}}
+  .fh{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8A7A64}
+  footer p,footer li{font-size:12.5px;color:#6B5B47}
+  footer ul{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:8px}
+  footer button{border:0;background:none;cursor:pointer;font:inherit;font-size:12.5px;font-weight:600;color:#6B5B47;padding:0}
+  footer button:hover{color:var(--ink)}
+  .fbot{margin-top:38px;border-top:1px solid #EADFCF;padding:18px 0;text-align:center;font-size:11.5px;color:#8A7A64}
+  /* banner bantuan: muncul bila widget key belum diisi */
+  #sapa-hint{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:60;width:min(560px,calc(100vw - 2rem));
+    background:#fff;border:1px solid #EADFCF;border-radius:20px;padding:16px 18px;
+    box-shadow:0 18px 50px -18px rgba(59,38,20,.45);font-size:13px;color:#4A3B2A;display:none}
+  #sapa-hint code{background:#F6F1E8;border-radius:6px;padding:2px 6px;font-size:12px;font-weight:700}
+  #sapa-hint .x{position:absolute;top:8px;right:10px;border:0;background:none;cursor:pointer;color:#9A8B77;font-size:18px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <span class="logo"><i>☕</i> ACME STORE</span>
+    <ul class="hide-sm">
+      <li><a href="#produk">Produk</a></li>
+      <li><a href="#kenapa">Kenapa kami</a></li>
+      <li><a href="#ulasan">Ulasan</a></li>
+      <li><a href="#faq">FAQ</a></li>
+    </ul>
+    <span class="spacer"></span>
+    <button class="btn ghost" onclick="ask('Halo, saya mau tanya soal produk kopi kalian')">💬 Tanya CS</button>
+    <a class="btn" href="#produk">Belanja</a>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <span class="pill">✨ Roasting tiap Senin &amp; Kamis</span>
+      <h1>Kopi specialty Indonesia, <span>disangrai minggu ini.</span></h1>
+      <p class="lede">
+        Dari dataran tinggi Gayo, Toraja, dan Kintamani langsung ke dapur Anda. Kami kirim hari yang
+        sama untuk pemesanan sebelum 15.00 WIB — dan kalau rasanya tidak cocok, kembalikan saja dalam 7 hari.
+      </p>
+      <div class="cta">
+        <a class="btn" href="#produk">Lihat semua produk</a>
+        <button class="btn ghost" onclick="ask('Berapa lama pengiriman ke Jakarta?')">💬 Tanya soal pengiriman</button>
+      </div>
+      <div class="trust">
+        <span>🚚 Gratis ongkir &gt; Rp250.000</span>
+        <span>🛡️ Garansi rasa 7 hari</span>
+        <span>⭐ 4,9/5 dari 2.318 ulasan</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="top"><span class="tag">Best seller</span><span>⭐ 4,9</span></div>
+      <div class="visual">☕</div>
+      <h3 style="font-size:21px;margin:0;letter-spacing:-.02em">Kopi Gayo Wine 200g</h3>
+      <p class="note" style="font-size:13.5px;color:#6B5B47;margin:6px 0 0">
+        Proses natural anaerobik 72 jam. Catatan rasa: red wine, blackberry, dark chocolate.
+      </p>
+      <div class="row">
+        <span class="price">Rp95.000</span>
+        <button class="btn" onclick="ask('Saya mau pesan Kopi Gayo Wine 200g, bagaimana caranya?')">Tanya &amp; pesan</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<section id="produk">
+  <div class="wrap">
+    <h2>Paling banyak dipesan</h2>
+    <p class="sub">Bingung memilih? Tanya asisten kami di pojok kanan bawah — dia hafal seluruh katalog.</p>
+    <div class="grid g4 prod">
+      <div class="tile"><div class="visual">☕</div><span class="tag">Best seller</span>
+        <h3>Kopi Gayo Wine 200g</h3><p class="note">Fruity, winey, body tebal</p>
+        <div class="row"><span class="price" style="font-size:17px">Rp95.000</span>
+        <button class="btn soft" onclick="ask('Jelaskan detail Kopi Gayo Wine 200g')">Tanya</button></div></div>
+      <div class="tile"><div class="visual">🫘</div><span class="tag">Single origin</span>
+        <h3>Toraja Sapan 200g</h3><p class="note">Earthy, spicy, low acidity</p>
+        <div class="row"><span class="price" style="font-size:17px">Rp88.000</span>
+        <button class="btn soft" onclick="ask('Jelaskan detail Toraja Sapan 200g')">Tanya</button></div></div>
+      <div class="tile"><div class="visual">🧊</div><span class="tag">Es kopi</span>
+        <h3>House Blend Es Kopi 250g</h3><p class="note">Diformulasi untuk susu &amp; es</p>
+        <div class="row"><span class="price" style="font-size:17px">Rp75.000</span>
+        <button class="btn soft" onclick="ask('Jelaskan detail House Blend Es Kopi')">Tanya</button></div></div>
+      <div class="tile"><div class="visual">🫖</div><span class="tag">Alat seduh</span>
+        <h3>Dripper V60 Keramik</h3><p class="note">Ukuran 02, termasuk filter</p>
+        <div class="row"><span class="price" style="font-size:17px">Rp65.000</span>
+        <button class="btn soft" onclick="ask('Jelaskan detail Dripper V60')">Tanya</button></div></div>
+    </div>
+  </div>
+</section>
+
+<section id="kenapa" class="band">
+  <div class="wrap">
+    <h2>Kenapa 12.000+ pelanggan tetap?</h2>
+    <div class="grid g4">
+      <div class="tile"><span class="ico">🚚</span><h3>Kirim hari yang sama</h3>
+        <p>Bayar sebelum 15.00 WIB, paket dijemput kurir hari itu juga. Jabodetabek sampai 1-2 hari kerja.</p></div>
+      <div class="tile"><span class="ico">🌿</span><h3>Roasting mingguan</h3>
+        <p>Biji disangrai tiap Senin &amp; Kamis, jadi kopi Anda tidak pernah lebih dari 7 hari pasca-roast.</p></div>
+      <div class="tile"><span class="ico">🛡️</span><h3>Garansi rasa 7 hari</h3>
+        <p>Tidak cocok? Kembalikan dalam 7 hari selama segel utuh — refund maksimal 3 hari kerja.</p></div>
+      <div class="tile"><span class="ico">✅</span><h3>Traceable ke petani</h3>
+        <p>Setiap batch mencantumkan nama petani, ketinggian tanam, dan proses pasca-panennya.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="ulasan">
+  <div class="wrap">
+    <h2>Kata mereka</h2>
+    <div class="grid g3">
+      <div class="tile"><div class="stars">★★★★★</div>
+        <blockquote>“Pengiriman ke Jakarta cuma sehari. Gayo Wine-nya luar biasa, aroma wine-nya jelas tanpa terasa fermentasi berlebihan.”</blockquote>
+        <div class="who">Rina Ardianti <small>Home barista, Jakarta</small></div></div>
+      <div class="tile"><div class="stars">★★★★★</div>
+        <blockquote>“Saya order 5kg per minggu untuk kafe. Konsisten, dan CS-nya cepat banget menjawab pertanyaan soal profil roast.”</blockquote>
+        <div class="who">Budi Santoso <small>Pemilik kafe, Bandung</small></div></div>
+      <div class="tile"><div class="stars">★★★★★</div>
+        <blockquote>“Sempat salah pilih grinder, tapi retur diproses tanpa drama. Jarang ada toko kopi yang serapi ini layanannya.”</blockquote>
+        <div class="who">Maya Prasetya <small>Pelanggan baru, Surabaya</small></div></div>
+    </div>
+  </div>
+</section>
+
+<section id="faq" style="padding-top:0">
+  <div class="wrap" style="max-width:760px">
+    <h2>Pertanyaan yang sering masuk</h2>
+    <p class="sub">Tidak ketemu jawabannya? Asisten kami online 24 jam di pojok kanan bawah.</p>
+    <div style="margin-top:30px">
+      <details open>
+        <summary>Berapa lama pengiriman ke luar Jawa?</summary>
+        <p>3-6 hari kerja. Ongkir flat Rp20.000, dan gratis untuk pembelian di atas Rp250.000.</p>
+        <button class="ask" onclick="ask('Berapa lama pengiriman ke luar Jawa?')">💬 Tanyakan ke asisten</button>
+      </details>
+      <details>
+        <summary>Bisa bayar di tempat?</summary>
+        <p>Belum. Metode pembayaran: transfer BCA/Mandiri, QRIS, kartu kredit, dan cicilan 0% untuk order di atas Rp500.000.</p>
+        <button class="ask" onclick="ask('Apa saja metode pembayaran?')">💬 Tanyakan ke asisten</button>
+      </details>
+      <details>
+        <summary>Apakah biji atau bubuk?</summary>
+        <p>Default biji utuh. Kalau mau digiling, sebutkan metode seduh Anda di catatan pesanan.</p>
+        <button class="ask" onclick="ask('Apakah kopi dikirim dalam bentuk biji atau bubuk?')">💬 Tanyakan ke asisten</button>
+      </details>
+    </div>
+  </div>
+</section>
+
+<section style="padding-top:0">
+  <div class="wrap">
+    <div class="dark">
+      <h2>Siap menyeduh yang lebih baik?</h2>
+      <p>Pesan sebelum 15.00 WIB dan paket Anda dijemput kurir hari ini. Voucher <b>AKUSENYANG</b> memberi diskon 10% untuk pesanan pertama.</p>
+      <div class="cta">
+        <a class="btn" href="#produk">Mulai belanja</a>
+        <button class="btn ghost" onclick="ask('Ada diskon apa bulan ini?')">💬 Cek promo lewat chat</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap fgrid">
+    <div>
+      <span class="logo"><i>☕</i> ACME STORE</span>
+      <p>Jl. Braga No. 12, Bandung 40111<br>(022) 555-0142 · halo@acmestore.id</p>
+    </div>
+    <div><div class="fh">Jam layanan</div><p>Senin-Sabtu 09.00-18.00 WIB<br>Chat AI aktif 24 jam</p></div>
+    <div><div class="fh">Bantuan</div><ul>
+      <li><button onclick="ask('Bagaimana cara pengembalian barang?')">Retur &amp; refund</button></li>
+      <li><button onclick="ask('Bagaimana cara lacak paket saya?')">Lacak pesanan</button></li>
+      <li><button onclick="ask('Berapa ongkos kirim ke luar Jawa?')">Ongkos kirim</button></li>
+    </ul></div>
+    <div><div class="fh">Ditenagai oleh</div>
+      <p>Chatbot halaman ini dipasang dengan satu baris script <b>Sapa AI</b>.</p></div>
+  </div>
+  <div class="fbot">© <span id="yr"></span> Acme Store — contoh landing page untuk demo integrasi widget Sapa AI.</div>
+</footer>
+
+<div id="sapa-hint">
+  <button class="x" onclick="document.getElementById('sapa-hint').style.display='none'">×</button>
+  <b>Chatbot belum aktif.</b> Ganti <code>PK_ANDA</code> pada script di bawah halaman ini dengan public key
+  agent Anda (dashboard → <b>Builder → tab Integrasi</b>), atau buka file ini lewat
+  <code>?key=pk_…</code>.
+</div>
+
+<script>
+  document.getElementById('yr').textContent = new Date().getFullYear();
+
+  // Ambil key dari ?key= / ?k= bila ada, supaya satu file ini bisa dipakai banyak agent.
+  var qs = new URLSearchParams(location.search);
+  var SAPA_KEY = qs.get('key') || qs.get('k') || 'PK_ANDA';
+
+  // Host API: default = origin halaman ini (bila landing page di-serve dari domain
+  // Sapa AI). Untuk situs eksternal, ganti dengan domain deployment Anda, mis.
+  //   var SAPA_HOST = 'https://sapa.zasya.id';
+  var SAPA_HOST = qs.get('host') || location.origin;
+
+  function ask(text) {
+    if (window.SapaChat) { window.SapaChat.open(); window.SapaChat.send(text); }
+    else { document.getElementById('sapa-hint').style.display = 'block'; }
+  }
+
+  if (SAPA_KEY && SAPA_KEY !== 'PK_ANDA') {
+    // ══════════════════════════════════════════════════════════════════
+    //  INI SATU-SATUNYA BARIS INTEGRASI YANG DIBUTUHKAN DI SITUS ANDA
+    // ══════════════════════════════════════════════════════════════════
+    var s = document.createElement('script');
+    s.src = SAPA_HOST + '/embed/widget.js';
+    s.setAttribute('data-sapa-key', SAPA_KEY);
+    s.defer = true;
+    document.body.appendChild(s);
+  } else {
+    document.getElementById('sapa-hint').style.display = 'block';
+  }
+</script>
+
+<!-- Bentuk statis (paling umum dipakai) — hapus script dinamis di atas bila
+     memakai baris ini saja:
+
+<script src="https://sapa.zasya.id/embed/widget.js" data-sapa-key="pk_XXXX" defer></script>
+-->
+</body>
+</html>
