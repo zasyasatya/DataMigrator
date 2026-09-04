@@ -1,4 +1,10 @@
-.PHONY: install install-api build-widget dev-api dev-web build test test-api typecheck
+.PHONY: install install-api build-widget dev-api dev-web build test test-api typecheck run docker-up
+
+run:
+	python3 run.py
+
+docker-up:
+	python3 run.py docker
 
 install: install-api
 	npm install --no-audit --no-fund

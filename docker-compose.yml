@@ -1,32 +1,96 @@
+# Sapa AI — compose lokal / VPS non-Coolify.
+#
+# Zero-config: semua env punya default waras ("magic env"), jadi perintah ini
+# langsung jalan tanpa .env:
+#   npm run build:widget      # prasyarat 1x: bundle widget untuk backend
+#   docker compose up --build # api:8000 + web:3000 (proxy otomatis)
+# atau satu command via runner:
+#   python run.py docker
+#
+# Deploy Coolify? JANGAN pakai file ini — deploy repo sebagai "Dockerfile"
+# (image all-in-one di ./Dockerfile, port 3000). Lihat docs/deployment.md.
+#
+# Kustomisasi via .env (lihat .env.example) atau environment shell, misal:
+#   SECRET_KEY=$(openssl rand -hex 32) PORT=3100 docker compose up --build
+
 services:
   api:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
+    image: sapa-ai-api:latest
     ports:
-      - "8000:8000"
+      # API langsung (docs Swagger di /docs). Dashboard tidak butuh ini
+      # karena me-proxy via API_INTERNAL_URL di service `web`.
+      - "${API_PORT:-8000}:8000"
     environment:
+      ENVIRONMENT: ${ENVIRONMENT:-production}
       DATABASE_URL: ${DATABASE_URL:-sqlite+aiosqlite:////data/sapa.db}
       SECRET_KEY: ${SECRET_KEY:-change-me-in-prod}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@sapa.ai}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
+      ADMIN_NAME: ${ADMIN_NAME:-Admin Sapa}
+      WORKSPACE_NAME: ${WORKSPACE_NAME:-Acme Store}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
       APP_URL: ${APP_URL:-http://localhost:3000}
+      CORS_ORIGINS: ${CORS_ORIGINS:-["*"]}
+      SEED_DEMO: ${SEED_DEMO:-0}
+      WIDGET_BUNDLE: /srv/widget.js
     volumes:
       - sapa-data:/data
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=5).read()",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
 
   web:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
+    image: sapa-ai-web:latest
     ports:
-      - "3000:3000"
+      # Port utama dashboard. Same-origin rewrite /api/v1/*, /w/*, /embed/*
+      # -> API_INTERNAL_URL, jadi tanpa konfigurasi CORS tambahan.
+      - "${PORT:-3000}:3000"
     environment:
-      API_INTERNAL_URL: http://api:8000
+      API_INTERNAL_URL: ${API_INTERNAL_URL:-http://api:8000}
+      NODE_ENV: production
     depends_on:
-      - api
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # --- Postgres opsional (produksi) -----------------------------------------
+  # Cara pakai:
+  #   docker compose --profile pg up --build
+  #   DATABASE_URL=postgresql+asyncpg://sapa:sapa@db:5432/sapa docker compose --profile pg up --build
+  # db:
+  #   image: postgres:16-alpine
+  #   profiles: ["pg"]
+  #   environment:
+  #     POSTGRES_USER: ${POSTGRES_USER:-sapa}
+  #     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sapa}
+  #     POSTGRES_DB: ${POSTGRES_DB:-sapa}
+  #   volumes:
+  #     - sapa-pgdata:/var/lib/postgresql/data
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-sapa}"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
 
 volumes:
   sapa-data:
+  # sapa-pgdata:
