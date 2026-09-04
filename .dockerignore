@@ -1,0 +1,41 @@
+# ---- deps & build output (di-build ulang di dalam image) ----
+node_modules/
+.pnp
+.pnp.js
+.next/
+out/
+dist/
+build/
+.next
+*.tsbuildinfo
+.turbo/
+
+# ---- python ----
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+coverage/
+
+# ---- env & data (jangan bake secret/db lokal ke image) ----
+.env
+.env.local
+.env.*.local
+data/
+*.db
+*.sqlite3
+
+# ---- repo plumbing & docs (tidak dibutuhkan runtime) ----
+.git/
+.gitignore
+docs/
+examples/
+*.log
+npm-debug.log*
+.DS_Store
+.idea/
+.vscode/
+README.md

@@ -73,6 +73,11 @@ Seed otomatis membuat workspace *Acme Store*, agent *Sara* + 4 dokumen knowledge
 docker compose up --build     # api:8000 + web:3000 (proxy otomatis)
 ```
 
+**Deploy ke Coolify** (disarankan untuk produksi): deploy repo ini sebagai
+*Dockerfile* (image all-in-one: API + dashboard satu container), expose port
+**3000**, isi `SECRET_KEY`, mount volume ke `/data`. Detail + tabel env +
+troubleshooting: [`docs/deployment.md`](docs/deployment.md).
+
 ## Integrasi ke website pelanggan (cara termudah)
 
 Tempel **satu baris** sebelum `</body>` (key dari Builder → tab **Integrasi**):
@@ -173,5 +178,7 @@ apps/api      FastAPI: models, schemas, routers, services (retrieval/llm/chat/an
 apps/web      Next.js dashboard (design system mock)
 packages/widget  widget popup embeddable (TS → IIFE, Shadow DOM)
 examples/     standalone.html
-docker-compose.yml, Makefile, .env.example
+docs/         architecture, ai-engine, backend, frontend, deployment
+Dockerfile (+ docker/start.sh)  image all-in-one Coolify-ready (port 3000)
+docker-compose.yml (magic env), run.py (one-command runner), Makefile, .env.example
 ```
