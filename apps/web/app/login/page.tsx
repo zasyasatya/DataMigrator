@@ -32,7 +32,10 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="app-bg flex min-h-screen items-center justify-center p-6">
+    // Normal-flow wrapper so the page scrolls; .app-bg is a fixed decoration layer
+    // stacked behind it (see globals.css) and must never wrap the UI itself.
+    <div className="relative z-10 flex min-h-screen items-center justify-center p-6">
+      <div className="app-bg" aria-hidden="true" />
       <div className="w-full max-w-[400px]">
         <div className="mb-6 flex items-center justify-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary-700 text-white shadow-[0_10px_28px_-8px_rgba(124,92,246,.8)]">
@@ -53,6 +56,9 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="admin@sapa.ai"
                 autoComplete="email"
+                autoCapitalize="none"
+                spellCheck={false}
+                required
               />
             </Field>
             <Field label="Password">
@@ -62,10 +68,14 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 autoComplete="current-password"
+                required
               />
             </Field>
             {err && (
-              <p className="rounded-xl bg-danger-soft px-3 py-2 text-[12.5px] font-semibold text-danger">
+              <p
+                role="alert"
+                className="rounded-xl bg-danger-soft px-3 py-2 text-[12.5px] font-semibold text-danger"
+              >
                 {err}
               </p>
             )}

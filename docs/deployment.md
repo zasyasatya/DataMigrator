@@ -57,8 +57,8 @@ menunggu API siap. Profil Postgres opsional tersedia (komentar `db` + `--profile
 | Gejala | Penyebab & solusi |
 |---|---|
 | `/embed/widget.js` 404 "belum di-build" | lokal/compose: `npm run build:widget` dulu (image Coolify sudah include) |
-| Dashboard 500 di `/api/...` | `API_INTERNAL_URL` salah — compose: `http://api:8000`; all-in-one: `http://127.0.0.1:8000` |
-| Login default gagal di prod | `ADMIN_*` hanya bootstrap DB kosong — reset volume/DB bila user sudah ada, atau login lalu ganti |
+| Dashboard 500/502 di `/api/...` (login ikut gagal) | `API_INTERNAL_URL` salah — compose: `http://api:8000`; all-in-one: `http://127.0.0.1:$API_PORT`. Dibaca saat runtime, jadi cukup restart container (tanpa rebuild) |
+| Login default gagal di prod | `ADMIN_PASSWORD` sekarang disinkronkan ke admin bootstrap saat boot (seed tetap idempoten) — cek log; `ADMIN_EMAIL` baru hanya dibuat saat DB kosong |
 | Widget 403 origin | tambah origin situs ke *allowed origins* agent (tab Integrasi) |
 | Dashboard kosong | `SEED_DEMO=1` (dev) atau buat agent + knowledge via builder |
 | Port bentrok lokal | `python run.py --web-port 3100 --api-port 8100` |

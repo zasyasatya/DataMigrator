@@ -21,7 +21,7 @@ Terinspirasi alur kerja Cekat AI & Halo AI: *train → simulate → deploy ke ch
 │   │                  tampilan/integrasi/percakapan  +  SIMULATOR kanan│
 │   ├─ /settings       API keys, integrasi, & provider LLM (OpenAI)     │
 │   └─ /demo           situs pelanggan palsu utk uji popup widget       │
-│        │  rewrites same-origin: /api/v1/*, /w/*, /embed/*             │
+│        │  proxy same-origin (runtime): /api/v1/*, /w/*, /embed/*      │
 │        ▼                                                              │
 │  apps/api            FastAPI 0.141 + SQLAlchemy 2 async               │
 │   ├─ /api/v1/auth    login JWT-ish (HMAC) + cookie                    │

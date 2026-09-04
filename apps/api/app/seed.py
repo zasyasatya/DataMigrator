@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.ids import new_id, new_public_key, new_secret_key
-from app.core.security import hash_password, sha256_hex
+from app.core.security import hash_password, sha256_hex, verify_password
 from app.models import (
     Agent,
     ApiKey,
@@ -78,6 +78,7 @@ DEFAULT_STARTERS = [
 async def seed(db: AsyncSession) -> None:
     existing = (await db.execute(select(Workspace).limit(1))).scalars().first()
     if existing:
+        await sync_bootstrap_admin(db)
         return
 
     ws = Workspace(id=new_id("workspace"), name=settings.workspace_name, slug="acme-store")
@@ -152,6 +153,23 @@ async def seed(db: AsyncSession) -> None:
     if os.environ.get("SEED_DEMO", "1" if settings.environment == "development" else "0") == "1":
         await _seed_demo_conversations(db, agent.id)
 
+    await db.commit()
+
+
+async def sync_bootstrap_admin(db: AsyncSession) -> None:
+    """Keep the bootstrap admin in sync with ADMIN_EMAIL / ADMIN_PASSWORD.
+
+    Seeding only ever runs on an empty database, so a redeploy that changes
+    ADMIN_PASSWORD against an existing data volume would leave the old password
+    in place and lock the operator out (the login page advertises the env var as
+    the way to set it). Align the hash with the env whenever it does not match.
+    """
+    admin = (
+        await db.execute(select(User).where(User.email == settings.admin_email))
+    ).scalar_one_or_none()
+    if admin is None or verify_password(settings.admin_password, admin.password_hash):
+        return
+    admin.password_hash = hash_password(settings.admin_password)
     await db.commit()
 
 

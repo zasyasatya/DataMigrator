@@ -284,3 +284,38 @@ async def test_agent_analytics(client: httpx.AsyncClient, auth: dict):
     assert len(body["hour_histogram"]) == 24
     for key in ("by_channel", "top_sources", "feedback", "engine_split", "csat", "avg_latency_s"):
         assert key in body
+
+
+async def test_bootstrap_admin_password_follows_env_on_reseed(client, monkeypatch):
+    """A redeploy with a new ADMIN_PASSWORD must not lock the operator out.
+
+    The login page tells users to change the admin password via env; the seed is
+    idempotent, so without syncing this silently kept the old hash and login 401'd.
+    """
+    from app.core.config import settings
+    from app.core.db import SessionLocal
+    from app.seed import seed
+
+    try:
+        monkeypatch.setattr(settings, "admin_password", "rahasia-baru-42")
+        async with SessionLocal() as db:
+            await seed(db)  # workspace already exists -> early-return path must re-align
+
+        new = await client.post(
+            "/api/v1/auth/login", json={"email": "admin@sapa.ai", "password": "rahasia-baru-42"}
+        )
+        assert new.status_code == 200, new.text
+
+        stale = await client.post(
+            "/api/v1/auth/login", json={"email": "admin@sapa.ai", "password": "admin123"}
+        )
+        assert stale.status_code == 401
+    finally:
+        monkeypatch.undo()
+        async with SessionLocal() as db:
+            await seed(db)
+
+    back = await client.post(
+        "/api/v1/auth/login", json={"email": "admin@sapa.ai", "password": "admin123"}
+    )
+    assert back.status_code == 200, back.text

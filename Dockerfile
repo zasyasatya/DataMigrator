@@ -11,8 +11,9 @@
 # Catatan arsitektur:
 # - Widget popup (packages/widget) di-build di dalam image -> tidak ada
 #   prasyarat `npm run build:widget` di host saat deploy via image ini.
-# - Next.js me-rewrite /api/v1/*, /w/*, /embed/* ke API_INTERNAL_URL
-#   (default http://127.0.0.1:8000, satu host yang sama -> bebas drama CORS).
+# - Next.js me-proxy /api/v1/*, /w/*, /embed/* ke API_INTERNAL_URL lewat route
+#   handler yang membacanya saat runtime (default 127.0.0.1:$API_PORT, satu host
+#   yang sama -> bebas drama CORS, override API_PORT ikut terpakai).
 # - SQLite default di /data/sapa.db (VOLUME /data). Untuk Postgres, isi
 #   DATABASE_URL=postgresql+asyncpg://... saat deploy.
 

@@ -48,7 +48,8 @@ export default function Shell({ children }: { children: ReactNode }) {
 
   if (!ready) {
     return (
-      <div className="app-bg flex min-h-screen items-center justify-center">
+      <div className="relative z-10 flex min-h-screen items-center justify-center">
+        <div className="app-bg" aria-hidden="true" />
         <Sparkles className="animate-pulse text-primary" size={28} />
       </div>
     );
@@ -61,7 +62,8 @@ export default function Shell({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className="app-bg min-h-screen">
+    <div className="relative z-10 min-h-screen">
+      <div className="app-bg" aria-hidden="true" />
       {me && (
         <>
           {/* mobile top bar */}

@@ -60,8 +60,9 @@ services:
       dockerfile: apps/web/Dockerfile
     image: sapa-ai-web:latest
     ports:
-      # Port utama dashboard. Same-origin rewrite /api/v1/*, /w/*, /embed/*
-      # -> API_INTERNAL_URL, jadi tanpa konfigurasi CORS tambahan.
+      # Port utama dashboard. Proxy same-origin /api/v1/*, /w/*, /embed/*
+      # -> API_INTERNAL_URL, dibaca saat runtime oleh route handler (bukan saat
+      # build), jadi tanpa konfigurasi CORS tambahan dan tanpa rebuild image.
       - "${PORT:-3000}:3000"
     environment:
       API_INTERNAL_URL: ${API_INTERNAL_URL:-http://api:8000}

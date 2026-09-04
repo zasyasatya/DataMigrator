@@ -13,7 +13,7 @@ Monorepo tiga paket: dashboard Next.js, backend FastAPI, widget vanilla-TS.
 │   │                  tampilan/integrasi/percakapan  +  SIMULATOR kanan│
 │   ├─ /settings       API keys, integrasi, & provider LLM (OpenAI)     │
 │   └─ /demo           situs pelanggan palsu utk uji popup widget       │
-│        │  rewrites same-origin: /api/v1/*, /w/*, /embed/*             │
+│        │  proxy same-origin (runtime): /api/v1/*, /w/*, /embed/*      │
 │        ▼                                                              │
 │  apps/api            FastAPI 0.141 + SQLAlchemy 2 async               │
 │   ├─ /api/v1/auth    login JWT-ish (HMAC) + cookie                    │
@@ -43,7 +43,10 @@ di `app/core/deps.py::check_origin` — origin tak dikenal ditolak 403).
 ## Alur request
 
 1. **Dashboard → backend.** Browser memanggil `/api/v1/...` (same-origin) dengan
-   header `Authorization: Bearer <token>`; Next meneruskannya ke `API_INTERNAL_URL`.
+   header `Authorization: Bearer <token>`; route handler Next (`app/api/v1/[...path]`
+   + `lib/proxy.ts`) meneruskannya ke `API_INTERNAL_URL` per request — bukan
+   `rewrites()` yang dipanggang saat build, supaya env container benar-benar dipakai.
+   Backend tak terjangkau → 502 + detail, bukan 500 kosong.
    Token 401 → frontend menghapus token & redirect ke `/login` (`apps/web/lib/api.ts`).
 2. **Widget publik → backend.** `GET /w/{pk}/config` → `POST /w/{pk}/session` →
    `POST /w/{pk}/chat` (SSE: `meta/delta/done`) → `GET /w/{pk}/history`.

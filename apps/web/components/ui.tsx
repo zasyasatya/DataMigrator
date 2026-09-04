@@ -11,11 +11,14 @@ export function Button({
   variant = "primary",
   size = "md",
   className,
+  type = "button",
   ...props
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: "primary" | "ghost" | "outline" | "danger" | "dark";
   size?: "sm" | "md";
 }) {
+  // `type="button"` by default: action buttons must not submit the surrounding
+  // form (submit buttons pass type="submit" explicitly).
   const base =
     "inline-flex items-center justify-center gap-2 font-semibold rounded-xl transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary";
   const variants = {
@@ -26,7 +29,9 @@ export function Button({
     dark: "bg-ink text-white hover:bg-black",
   };
   const sizes = { sm: "text-xs px-3 py-1.5", md: "text-sm px-4 py-2.5" };
-  return <button className={cx(base, variants[variant], sizes[size], className)} {...props} />;
+  return (
+    <button type={type} className={cx(base, variants[variant], sizes[size], className)} {...props} />
+  );
 }
 
 export function Card({ className, children }: { className?: string; children: ReactNode }) {

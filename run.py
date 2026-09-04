@@ -26,6 +26,7 @@ import socket
 import subprocess
 import sys
 import threading
+import typing
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
@@ -142,8 +143,11 @@ def _pump(prefix: str, pipe, out_q: "queue.Queue[str]") -> None:
             pass
 
 
-def run_many(cmds: list[tuple[str, list[str], Path]]) -> int:
-    """Jalankan N proses paralel, log ber-prefix, Ctrl+C mematikan semua."""
+def run_many(cmds: list[tuple[str, list[str], Path, dict | None]]) -> int:
+    """Jalankan N proses paralel, log ber-prefix, Ctrl+C mematikan semua.
+
+    Tiap entri: (nama, argv, cwd, env tambahan atau None).
+    """
     out_q: queue.Queue[str | None] = queue.Queue()
     procs: list[tuple[str, subprocess.Popen]] = []
     stop = threading.Event()
@@ -161,8 +165,8 @@ def run_many(cmds: list[tuple[str, list[str], Path]]) -> int:
     t = threading.Thread(target=printer, daemon=True)
     t.start()
     try:
-        for name, cmd, cwd in cmds:
-            env = with_node_bin({**os.environ, "PYTHONUNBUFFERED": "1"})
+        for name, cmd, cwd, extra_env in cmds:
+            env = with_node_bin({**os.environ, **(extra_env or {}), "PYTHONUNBUFFERED": "1"})
             p = subprocess.Popen(
                 cmd, cwd=str(cwd), env=env,
                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
@@ -198,11 +202,14 @@ def run_many(cmds: list[tuple[str, list[str], Path]]) -> int:
 def cmd_dev(a: argparse.Namespace) -> int:
     ensure_env_file()
     ensure_widget(allow_install=not a.no_install, allow_build=not a.no_build)
-    procs: list[tuple[str, list[str], Path]] = []
-    procs.append(("api", api_cmd(a.api_port, reload=not a.no_reload), ROOT))
+    # Dashboard mem-proxy /api/v1|/w|/embed ke API saat runtime; tanpa ini port API
+    # non-default (--api-port) membuat semua request API, termasuk login, gagal.
+    web_env = {"API_INTERNAL_URL": f"http://127.0.0.1:{a.api_port}"}
+    procs: list[tuple[str, list[str], Path, dict | None]] = []
+    procs.append(("api", api_cmd(a.api_port, reload=not a.no_reload), ROOT, None))
     if not port_free(a.web_port):
         fail(f"port web {a.web_port} sudah dipakai — bebas kan dulu atau --web-port lain")
-    procs.append(("web", web_cmd(a.web_port), WEB_DIR))
+    procs.append(("web", web_cmd(a.web_port), WEB_DIR, web_env))
     log(f"dashboard http://localhost:{a.web_port} | api http://localhost:{a.api_port} (/docs)")
     log("login default admin@sapa.ai / admin123 — Ctrl+C untuk berhenti")
     return run_many(procs)
@@ -214,9 +221,10 @@ def cmd_single(a: argparse.Namespace, which: str) -> int:
         if which == "api":
             ensure_widget(allow_install=not a.no_install, allow_build=not a.no_build)
         log(f"api http://localhost:{a.api_port} (/docs)")
-        return run_many([("api", api_cmd(a.api_port, reload=not a.no_reload), ROOT)])
+        return run_many([("api", api_cmd(a.api_port, reload=not a.no_reload), ROOT, None)])
     log(f"dashboard http://localhost:{a.web_port}")
-    return run_many([("web", web_cmd(a.web_port), WEB_DIR)])
+    return run_many([("web", web_cmd(a.web_port), WEB_DIR,
+                      {"API_INTERNAL_URL": f"http://127.0.0.1:{a.api_port}"})])
 
 
 def cmd_build(a: argparse.Namespace) -> int:
