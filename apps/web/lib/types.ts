@@ -41,6 +41,7 @@ export interface Agent {
   handoff_message: string;
   theme: AgentTheme;
   allowed_origins: string[];
+  channels: Record<string, { enabled?: boolean; phone_number_id?: string; page_id?: string; access_token?: string; verify_token?: string }>;
   published_at: string | null;
   created_at: string;
   updated_at: string;
@@ -116,4 +117,27 @@ export interface Overview {
   }[];
   recent_conversations: Conversation[];
   week_series: number[];
+}
+
+export interface AgentAnalytics {
+  conversations_total: number;
+  messages_total: number;
+  resolution_rate: number;
+  csat: number;
+  avg_latency_s: number;
+  busiest_hour: number;
+  series: { date: string; conversations: number; messages: number }[];
+  by_channel: Record<string, number>;
+  hour_histogram: number[];
+  top_sources: { title: string; hits: number }[];
+  feedback: { up: number; down: number };
+  engine_split: Record<string, number>;
+}
+
+export interface LLMSettings {
+  base_url: string;
+  model: string;
+  has_key: boolean;
+  key_masked: string | null;
+  source: "workspace" | "env" | "none";
 }

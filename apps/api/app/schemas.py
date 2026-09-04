@@ -37,6 +37,42 @@ class WorkspaceOut(ORMModel):
     slug: str
 
 
+# ------------------------------------------------------------------- settings
+class LLMSettingsIn(BaseModel):
+    api_key: str | None = None  # "" / null = hapus key workspace (fallback env)
+    base_url: str | None = None
+    model: str | None = None
+
+
+class LLMSettingsOut(BaseModel):
+    base_url: str
+    model: str
+    has_key: bool
+    key_masked: str | None
+    source: str  # workspace | env | none
+
+
+class LLMTestOut(BaseModel):
+    ok: bool
+    latency_ms: int | None = None
+    model: str | None = None
+    reply: str | None = None
+    error: str | None = None
+
+
+# -------------------------------------------------------------------- channels
+class ChannelTestIn(BaseModel):
+    message: str = Field(min_length=1, max_length=2000)
+
+
+class ChannelTestOut(BaseModel):
+    reply: str
+    engine: str
+    latency_ms: int
+    sources: list[dict[str, Any]] = []
+    conversation_id: str
+
+
 # -------------------------------------------------------------------------- keys
 class KeyCreateIn(BaseModel):
     label: str = "Default"
@@ -92,6 +128,7 @@ class AgentUpdateIn(BaseModel):
     handoff_message: str | None = None
     theme: dict[str, Any] | None = None
     allowed_origins: list[str] | None = None
+    channels: dict[str, Any] | None = None
 
     @field_validator("starter_prompts", "guardrails", "allowed_origins", mode="before")
     @classmethod
@@ -102,6 +139,17 @@ class AgentUpdateIn(BaseModel):
 
 
 class AgentOut(ORMModel):
+    @field_validator("rules", "guardrails", "starter_prompts", "allowed_origins", mode="before")
+    @classmethod
+    def _none_to_list(cls, v):
+        return v if v is not None else []
+
+    @field_validator("channels", "theme", mode="before")
+    @classmethod
+    def _none_to_dict(cls, v):
+        return v if v is not None else {}
+
+
     id: str
     name: str
     role_title: str
@@ -123,6 +171,7 @@ class AgentOut(ORMModel):
     handoff_message: str
     theme: dict[str, Any]
     allowed_origins: list[str] = []
+    channels: dict[str, Any] = {}
     published_at: datetime | None
     created_at: datetime
     updated_at: datetime
@@ -239,6 +288,21 @@ class ActivityItem(BaseModel):
     agent: str
     ago: str
     created_at: datetime
+
+
+class AgentAnalyticsOut(BaseModel):
+    conversations_total: int
+    messages_total: int
+    resolution_rate: float
+    csat: float
+    avg_latency_s: float
+    busiest_hour: int
+    series: list[dict[str, Any]] = []          # 14 hari: {date, conversations, messages}
+    by_channel: dict[str, int] = {}
+    hour_histogram: list[int] = []             # 24 bucket
+    top_sources: list[dict[str, Any]] = []     # {title, hits}
+    feedback: dict[str, int] = {}
+    engine_split: dict[str, int] = {}
 
 
 class OverviewOut(BaseModel):

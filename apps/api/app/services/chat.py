@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.config import settings
-from app.models import Agent, Conversation, KnowledgeChunk, Message
+from app.models import Agent, Conversation, KnowledgeChunk, Message, Workspace
 from app.services.llm import GenParams, Turn
 from app.services.llm.offline import AgentBrain, OfflineProvider
 from app.services.llm.openai_compat import OpenAICompatibleProvider
@@ -59,10 +59,30 @@ def build_system_prompt(agent: Agent, hits: list[Hit]) -> str:
     return "\n\n".join(parts)
 
 
-def pick_provider(agent: Agent) -> tuple[str, OpenAICompatibleProvider | OfflineProvider | None]:
+@dataclass
+class LLMConfig:
+    api_key: str | None = None
+    base_url: str | None = None
+    model: str | None = None
+
+
+async def get_llm_config(db: AsyncSession, workspace_id: str) -> LLMConfig:
+    """Workspace override (dashboard Settings) → fallback env."""
+    ws = (await db.execute(select(Workspace).where(Workspace.id == workspace_id))).scalar_one_or_none()
+    return LLMConfig(
+        api_key=(ws.llm_api_key if ws and ws.llm_api_key else None) or settings.openai_api_key,
+        base_url=(ws.llm_base_url if ws and ws.llm_base_url else None) or settings.openai_base_url,
+        model=(ws.llm_model if ws and ws.llm_model else None) or settings.openai_model,
+    )
+
+
+def pick_provider(
+    agent: Agent, cfg: LLMConfig | None = None
+) -> tuple[str, OpenAICompatibleProvider | OfflineProvider | None]:
     """Return (engine_name, provider_or_None)."""
+    cfg = cfg or LLMConfig()
     want = agent.engine
-    openai = OpenAICompatibleProvider()
+    openai = OpenAICompatibleProvider(api_key=cfg.api_key, base_url=cfg.base_url)
     if want == "openai":
         return ("openai", openai if openai.available else None)
     if want == "offline":
@@ -107,7 +127,8 @@ async def stream_chat(
 
     chunks = await load_chunks(db, agent.id)
     hits: list[Hit] = retrieve(chunks, user_text, top_k=agent.retrieval_top_k)
-    engine_name, provider = pick_provider(agent)
+    llm_cfg = await get_llm_config(db, agent.workspace_id)
+    engine_name, provider = pick_provider(agent, llm_cfg)
 
     sources = [
         {"document_id": h.document_id, "title": h.document_title, "score": round(h.score, 3)}
@@ -152,7 +173,11 @@ async def stream_chat(
                 turns.append(Turn(m.role, m.content))
             turns.append(Turn("user", user_text))
             gen = provider.stream(
-                turns, GenParams(temperature=agent.temperature, model=agent.model)
+                turns,
+                GenParams(
+                    temperature=agent.temperature,
+                    model=agent.model or llm_cfg.model,
+                ),
             )
         else:
             brain = AgentBrain(
@@ -209,6 +234,27 @@ async def stream_chat(
             "engine": assistant_msg.engine,
         },
     )
+
+
+async def run_chat(db: AsyncSession, agent: Agent, conversation: Conversation, text: str) -> dict:
+    """Non-streaming wrapper around stream_chat (dipakai channel WhatsApp/Instagram/API)."""
+    reply: list[str] = []
+    meta: dict = {}
+    async for ev in stream_chat(db, agent, conversation, text):
+        if ev.event == "delta":
+            reply.append(ev.data.get("t", ""))
+        elif ev.event == "meta":
+            meta.update(ev.data)
+        elif ev.event == "done":
+            meta.update(ev.data)
+    return {
+        "reply": "".join(reply),
+        "sources": meta.get("sources", []),
+        "latency_ms": meta.get("latency_ms", 0),
+        "engine": meta.get("engine", "offline"),
+        "message_id": meta.get("message_id"),
+        "conversation_id": conversation.id,
+    }
 
 
 def _now():

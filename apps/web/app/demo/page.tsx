@@ -1,6 +1,6 @@
 "use client";
 
-import { ShoppingBag, Star } from "lucide-react";
+import { ChevronDown, ChevronUp, ShoppingBag, Star } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
@@ -17,6 +17,7 @@ function DemoInner() {
   const params = useSearchParams();
   const [key, setKey] = useState("");
   const [input, setInput] = useState("");
+  const [panelOpen, setPanelOpen] = useState(true);
 
   useEffect(() => {
     const initial = params.get("key") || localStorage.getItem("sapa_demo_key") || "";
@@ -91,7 +92,15 @@ function DemoInner() {
       </section>
 
       {/* widget key control ------------------------------------------- */}
-      <div className="fixed left-4 top-4 z-20 w-[300px] rounded-2xl border border-[#E4D9FF] bg-white/95 p-4 shadow-xl backdrop-blur">
+      <div className="fixed left-3 top-3 z-20 w-[min(320px,calc(100vw-1.5rem))] rounded-2xl border border-[#E4D9FF] bg-white/95 p-4 shadow-xl backdrop-blur sm:left-4 sm:top-4">
+        <button
+          onClick={() => setPanelOpen((o) => !o)}
+          className="absolute right-2 top-2 rounded-lg p-1.5 text-[#6B5F52] hover:bg-[#F3EADB]"
+          aria-label="minimize"
+        >
+          {panelOpen ? <ChevronDown size={15} /> : <ChevronUp size={15} />}
+        </button>
+        {panelOpen && (<>
         <p className="text-[12px] font-bold text-[#4B3B8F]">🔌 Demo integrasi widget</p>
         <p className="mt-1 text-[11px] leading-relaxed text-[#6B5F52]">
           Tempel public key agent (tab Integrasi di dashboard), lalu Enter. Widget popup akan muncul di kanan bawah.
@@ -113,6 +122,10 @@ function DemoInner() {
         </form>
         {!key && (
           <p className="mt-2 text-[10.5px] text-[#B42318]">Widget belum dimuat — key kosong.</p>
+        )}
+        </>)}
+        {!panelOpen && (
+          <p className="pr-6 text-[11px] font-semibold text-[#4B3B8F]">Widget {key ? "aktif ✓" : "nonaktif"}</p>
         )}
       </div>
     </div>

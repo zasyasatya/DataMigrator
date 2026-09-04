@@ -8,7 +8,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Agent, Conversation, Feedback, Message
-from app.schemas import ActivityItem, ConversationOut, OverviewOut
+from app.schemas import ActivityItem, AgentAnalyticsOut, ConversationOut, OverviewOut
 
 
 def _day_start(offset_days: int = 0) -> datetime:
@@ -208,4 +208,78 @@ async def overview(db: AsyncSession, workspace_id: str, user_name: str) -> Overv
         activity=activity,
         recent_conversations=conv_outs,
         week_series=week,
+    )
+
+
+async def agent_analytics(db: AsyncSession, agent_id: str) -> AgentAnalyticsOut:
+    convs = (
+        await db.execute(select(Conversation).where(Conversation.agent_id == agent_id))
+    ).scalars().all()
+    conv_ids = [c.id for c in convs]
+    msgs: list[Message] = []
+    if conv_ids:
+        msgs = (
+            await db.execute(
+                select(Message).where(Message.conversation_id.in_(conv_ids)).order_by(Message.created_at)
+            )
+        ).scalars().all()
+
+    resolved = sum(1 for c in convs if c.status == "resolved")
+    resolution = (resolved / len(convs) * 100) if convs else 0.0
+
+    fb = (
+        await db.execute(
+            select(Feedback.rating).where(Feedback.conversation_id.in_(conv_ids or ["-"]))
+        )
+    ).scalars().all()
+    up = sum(1 for r in fb if r == "up")
+    down = sum(1 for r in fb if r == "down")
+    csat = (up / (up + down) * 100) if (up + down) else 0.0
+
+    lat = [m.latency_ms for m in msgs if m.role == "assistant" and m.latency_ms]
+    avg_latency = (sum(lat) / len(lat) / 1000) if lat else 0.0
+
+    # series 14 hari
+    series = []
+    for i in range(13, -1, -1):
+        start, end = _day_start(i), _day_start(i - 1)
+        c = sum(1 for c_ in convs if start <= _aware(c_.started_at) < end)
+        m = sum(1 for m_ in msgs if start <= _aware(m_.created_at) < end)
+        series.append({"date": start.strftime("%Y-%m-%d"), "conversations": c, "messages": m})
+
+    by_channel: dict[str, int] = {}
+    for c in convs:
+        by_channel[c.channel] = by_channel.get(c.channel, 0) + 1
+
+    hours = [0] * 24
+    for m in msgs:
+        hours[_aware(m.created_at).hour] += 1
+    busiest = max(range(24), key=lambda h: hours[h]) if any(hours) else 0
+
+    src_hits: dict[str, int] = {}
+    engine_split: dict[str, int] = {}
+    for m in msgs:
+        if m.role != "assistant":
+            continue
+        engine_split[m.engine] = engine_split.get(m.engine, 0) + 1
+        for s in m.sources or []:
+            title = s.get("title", "Dokumen")
+            src_hits[title] = src_hits.get(title, 0) + 1
+    top_sources = sorted(
+        ({"title": t, "hits": h} for t, h in src_hits.items()), key=lambda x: -x["hits"]
+    )[:5]
+
+    return AgentAnalyticsOut(
+        conversations_total=len(convs),
+        messages_total=len(msgs),
+        resolution_rate=round(resolution, 1),
+        csat=round(csat, 1),
+        avg_latency_s=round(avg_latency, 1),
+        busiest_hour=busiest,
+        series=series,
+        by_channel=by_channel,
+        hour_histogram=hours,
+        top_sources=top_sources,
+        feedback={"up": up, "down": down},
+        engine_split=engine_split,
     )

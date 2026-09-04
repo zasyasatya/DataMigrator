@@ -7,7 +7,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routers import agents, analytics, auth, conversations, embed, keys, knowledge, simulate, widget
+from app.api.routers import agents, analytics, auth, channels, conversations, embed, keys, knowledge, simulate, widget
+from app.api.routers import settings as settings_router
 from app.core.config import settings
 from app.core.db import SessionLocal, init_db
 from app.seed import seed
@@ -39,7 +40,7 @@ app.add_middleware(
     expose_headers=["*"],
 )
 
-for r in (auth, agents, knowledge, conversations, simulate, analytics, keys, widget, embed):
+for r in (auth, agents, knowledge, conversations, simulate, analytics, keys, widget, embed, settings_router, channels):
     app.include_router(r.router)
 
 

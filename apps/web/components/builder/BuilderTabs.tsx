@@ -1,16 +1,20 @@
 "use client";
 
-import { BookOpen, Code2, MessagesSquare, Palette, SlidersHorizontal, Sparkles, Trash2, Upload } from "lucide-react";
+import { BarChart3, BookOpen, Code2, MessagesSquare, Palette, SlidersHorizontal, Sparkles, Trash2, Upload, Waypoints } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { api, clockTime, timeAgo } from "@/lib/api";
 import type { Agent, Conversation, ConversationDetail, KnowledgeDoc } from "@/lib/types";
 import { Badge, Button, CopyButton, cx, Field, Input, Select, Textarea, Toggle, useToast, Toast } from "@/components/ui";
+import AnalyticsTab from "./AnalyticsTab";
+import ChannelsTab from "./ChannelsTab";
 
 const TABS = [
   { id: "instructions", label: "Instruksi", icon: Sparkles },
   { id: "knowledge", label: "Knowledge", icon: BookOpen },
   { id: "behaviour", label: "Perilaku", icon: SlidersHorizontal },
   { id: "appearance", label: "Tampilan", icon: Palette },
+  { id: "channels", label: "Channels", icon: Waypoints },
+  { id: "analytics", label: "Analitik", icon: BarChart3 },
   { id: "integration", label: "Integrasi", icon: Code2 },
   { id: "conversations", label: "Percakapan", icon: MessagesSquare },
 ];
@@ -63,6 +67,8 @@ export default function BuilderTabs({
         {tab === "knowledge" && <KnowledgeTab agent={agent} toast={show} />}
         {tab === "behaviour" && <BehaviourTab agent={agent} patch={patch} />}
         {tab === "appearance" && <AppearanceTab agent={agent} patch={patch} />}
+        {tab === "channels" && <ChannelsTab agent={agent} toast={show} />}
+        {tab === "analytics" && <AnalyticsTab agentId={agent.id} />}
         {tab === "integration" && <IntegrationTab agent={agent} toast={show} />}
         {tab === "conversations" && <ConversationsTab agent={agent} />}
       </div>

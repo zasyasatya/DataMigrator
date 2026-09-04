@@ -1,14 +1,20 @@
 "use client";
 
-import { KeyRound, Plus, Trash2 } from "lucide-react";
+import { Cpu, KeyRound, Plus, Trash2, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 import { TopBar } from "@/components/shell/Shell";
 import { api, timeAgo } from "@/lib/api";
-import type { ApiKeyRow } from "@/lib/types";
+import type { ApiKeyRow, LLMSettings } from "@/lib/types";
 import { Badge, Button, Card, CopyButton, Field, Input, useToast, Toast } from "@/components/ui";
 
 export default function SettingsPage() {
   const [keys, setKeys] = useState<ApiKeyRow[]>([]);
+  const [llm, setLlm] = useState<LLMSettings | null>(null);
+  const [apiKey, setApiKey] = useState("");
+  const [baseUrl, setBaseUrl] = useState("https://api.openai.com/v1");
+  const [model, setModel] = useState("gpt-4o-mini");
+  const [testRes, setTestRes] = useState<string | null>(null);
+  const [testing, setTesting] = useState(false);
   const [label, setLabel] = useState("Server key");
   const [created, setCreated] = useState<string | null>(null);
   const { toast, show } = useToast();
@@ -16,7 +22,36 @@ export default function SettingsPage() {
   const load = () => api<ApiKeyRow[]>("/keys").then(setKeys);
   useEffect(() => {
     load();
+    api<LLMSettings>("/settings/llm").then((s) => {
+      setLlm(s);
+      setBaseUrl(s.base_url);
+      setModel(s.model);
+    });
   }, []);
+
+  async function saveLlm() {
+    const next = await api<LLMSettings>("/settings/llm", {
+      method: "PUT",
+      body: JSON.stringify({ api_key: apiKey || null, base_url: baseUrl, model }),
+    });
+    setLlm(next);
+    setApiKey("");
+    show("Provider tersimpan");
+  }
+
+  async function testLlm() {
+    setTesting(true);
+    setTestRes(null);
+    const r = await api<{ ok: boolean; latency_ms?: number; model?: string; reply?: string; error?: string }>("/settings/llm/test", {
+      method: "POST",
+    });
+    setTestRes(
+      r.ok
+        ? `✅ Terhubung! model=${r.model ?? "-"} · ${r.latency_ms}ms · reply: "${r.reply}"`
+        : `⚠️ ${r.error}`
+    );
+    setTesting(false);
+  }
 
   async function create(kind: "public" | "secret") {
     const res = await api<ApiKeyRow & { secret?: string }>("/keys", {
@@ -40,6 +75,57 @@ export default function SettingsPage() {
         title="Integrasi & API Keys"
         subtitle="Secret key untuk server-to-server (Bearer sk_…), public key otomatis per agent untuk widget."
       />
+      <Card className="mb-4 p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#0EA5E9] to-primary text-white">
+              <Cpu size={18} />
+            </span>
+            <div>
+              <h3 className="text-[15px] font-bold">Provider LLM (OpenAI-compatible)</h3>
+              <p className="text-[12px] text-ink-3">
+                Status:{" "}
+                {llm ? (
+                  llm.has_key ? (
+                    <b className="text-success">terhubung via {llm.source} {llm.key_masked}</b>
+                  ) : (
+                    <b className="text-warning">offline engine (key belum diset)</b>
+                  )
+                ) : ("…")}
+                {" · "}agent dengan engine “auto/openai” akan memakai provider ini.
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={testLlm} disabled={testing}>
+              <Zap size={14} /> {testing ? "Menguji…" : "Tes koneksi"}
+            </Button>
+            <Button size="sm" onClick={saveLlm}>
+              Simpan
+            </Button>
+          </div>
+        </div>
+        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+          <Field label="API key" hint="kosongkan = pakai env / offline">
+            <Input
+              type="password"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              placeholder={llm?.key_masked ? `tersimpan ${llm.key_masked}` : "sk-…"}
+              autoComplete="new-password"
+            />
+          </Field>
+          <Field label="Base URL" hint="OpenAI / Groq / OpenRouter / Ollama">
+            <Input value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} placeholder="https://api.openai.com/v1" />
+          </Field>
+          <Field label="Model default">
+            <Input value={model} onChange={(e) => setModel(e.target.value)} placeholder="gpt-4o-mini" />
+          </Field>
+        </div>
+        {testRes && (
+          <p className="fade-up mt-3 rounded-xl bg-primary-soft/60 px-3 py-2 text-[12.5px] font-semibold text-ink">{testRes}</p>
+        )}
+      </Card>
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_380px]">
         <Card className="p-5">
           <h3 className="text-[15px] font-bold">Keys workspace</h3>

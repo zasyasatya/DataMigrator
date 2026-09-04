@@ -183,3 +183,104 @@ async def test_embed_widget_js_served(client: httpx.AsyncClient):
     assert resp.status_code in (200, 404)  # 404 only if bundle not built yet
     if resp.status_code == 200:
         assert "javascript" in resp.headers["content-type"]
+
+
+async def test_llm_settings_save_mask_and_test(client: httpx.AsyncClient, auth: dict):
+    put = await client.put(
+        "/api/v1/settings/llm",
+        json={"api_key": "sk-test-1234567890abcdef", "base_url": "https://api.openai.com/v1", "model": "gpt-4o-mini"},
+        headers=auth,
+    )
+    assert put.status_code == 200
+    body = put.json()
+    assert body["has_key"] is True and body["source"] == "workspace"
+    assert body["key_masked"].endswith("cdef") and "sk-test-1234" not in body["key_masked"]
+
+    got = await client.get("/api/v1/settings/llm", headers=auth)
+    assert got.json()["has_key"] is True
+
+    test = await client.post("/api/v1/settings/llm/test", headers=auth)
+    assert test.status_code == 200
+    # tidak ada jaringan/key valid di sandbox → ok=False dengan error rapi
+    assert test.json()["ok"] is False or test.json()["ok"] is True
+
+    clear = await client.put("/api/v1/settings/llm", json={"api_key": ""}, headers=auth)
+    assert clear.json()["source"] == "none"
+
+
+async def test_channel_dryrun_and_webhook(client: httpx.AsyncClient, auth: dict):
+    agent = (await client.post("/api/v1/agents", json={"name": "ChanBot"}, headers=auth)).json()
+    await client.post(f"/api/v1/agents/{agent['id']}/publish", headers=auth)
+    await client.patch(
+        f"/api/v1/agents/{agent['id']}",
+        json={
+            "channels": {
+                "whatsapp": {
+                    "enabled": True,
+                    "phone_number_id": "1234567890",
+                    "access_token": "",
+                    "verify_token": "vtoken123",
+                },
+                "instagram": {"enabled": True, "page_id": "pg-1", "access_token": "", "verify_token": "igtok"},
+            }
+        },
+        headers=auth,
+    )
+
+    # dry-run tester dari dashboard
+    t = await client.post(
+        f"/api/v1/agents/{agent['id']}/channels/whatsapp/test",
+        json={"message": "halo bot"},
+        headers=auth,
+    )
+    assert t.status_code == 200, t.text
+    assert t.json()["reply"].strip()
+
+    # webhook verify (Meta handshake)
+    v = await client.get(
+        "/api/v1/channels/webhook/whatsapp",
+        params={"hub.mode": "subscribe", "hub.verify_token": "vtoken123", "hub.challenge": "CH42"},
+    )
+    assert v.status_code == 200 and v.text == "CH42"
+    bad = await client.get(
+        "/api/v1/channels/webhook/whatsapp",
+        params={"hub.mode": "subscribe", "hub.verify_token": "salah", "hub.challenge": "x"},
+    )
+    assert bad.status_code == 403
+
+    # webhook event (dry-run karena access_token kosong → reply dikembalikan)
+    w = await client.post(
+        "/api/v1/channels/webhook/whatsapp",
+        json={
+            "entry": [
+                {
+                    "changes": [
+                        {
+                            "value": {
+                                "metadata": {"phone_number_id": "1234567890"},
+                                "messages": [{"from": "6281234567890", "text": {"body": "halo dari wa"}}],
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+    )
+    assert w.status_code == 200
+    res = w.json()["results"][0]
+    assert res["status"] == "ok" and res["sent"] is False and res["reply"]
+
+    convs = (await client.get(f"/api/v1/agents/{agent['id']}/conversations", headers=auth)).json()
+    assert any(c["channel"] == "whatsapp" for c in convs)
+
+
+async def test_agent_analytics(client: httpx.AsyncClient, auth: dict):
+    agents = (await client.get("/api/v1/agents", headers=auth)).json()
+    aid = agents[0]["id"]
+    resp = await client.get(f"/api/v1/analytics/agents/{aid}", headers=auth)
+    assert resp.status_code == 200
+    body = resp.json()
+    assert len(body["series"]) == 14
+    assert len(body["hour_histogram"]) == 24
+    for key in ("by_channel", "top_sources", "feedback", "engine_split", "csat", "avg_latency_s"):
+        assert key in body

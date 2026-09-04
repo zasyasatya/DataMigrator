@@ -19,7 +19,7 @@ Terinspirasi alur kerja Cekat AI & Halo AI: *train → simulate → deploy ke ch
 │   ├─ /agents         daftar agent                                     │
 │   ├─ /agents/[id]    BUILDER: tab instruksi/knowledge/perilaku/       │
 │   │                  tampilan/integrasi/percakapan  +  SIMULATOR kanan│
-│   ├─ /settings       API keys & integrasi                             │
+│   ├─ /settings       API keys, integrasi, & provider LLM (OpenAI)     │
 │   └─ /demo           situs pelanggan palsu utk uji popup widget       │
 │        │  rewrites same-origin: /api/v1/*, /w/*, /embed/*             │
 │        ▼                                                              │
@@ -28,6 +28,9 @@ Terinspirasi alur kerja Cekat AI & Halo AI: *train → simulate → deploy ke ch
 │   ├─ /api/v1/agents  CRUD, publish, rotate key                        │
 │   ├─ /api/v1/agents/{id}/knowledge   chunking + index BM25            │
 │   ├─ /api/v1/agents/{id}/simulate    SSE streaming (dashboard)        │
+│   ├─ /api/v1/settings/llm            provider OpenAI: simpan & test   │
+│   ├─ /api/v1/channels/webhook/{whatsapp|instagram}  webhook Meta      │
+│   ├─ /api/v1/analytics/agents/{id}   analitik mendalam per agent      │
 │   ├─ /w/{pk}/config|session|chat|history   API publik widget (SSE)    │
 │   ├─ /embed/widget.js   bundle popup chat (1 file, shadow DOM)        │
 │   └─ engine: rules → retrieval(BM25) → OpenAI-compatible / offline    │
@@ -93,6 +96,28 @@ API widget JS untuk situs Anda: `window.SapaChat.open() / .close() / .send(text)
 Lihat `examples/standalone.html` untuk halaman uji tanpa framework, dan rute `/demo` di dashboard
 untuk toko contoh yang memuat widget sungguhan.
 
+## Provider LLM (OpenAI)
+
+Isi dari dashboard **Settings → Provider LLM** (tersimpan per-workspace, override env):
+API key, base URL (OpenAI/Groq/OpenRouter/Ollama/vLLM), dan model default — lengkap dengan tombol
+**Tes koneksi** yang melakukan panggilan nyata dan melaporkan latency. Agent dengan `engine: auto`
+otomatis memakai provider ini bila key tersedia; bila tidak, engine offline yang menjawab.
+
+## Channel WhatsApp & Instagram
+
+- Daftarkan callback URL `https://domain/api/v1/channels/webhook/whatsapp` (atau `.../instagram`)
+  di Meta App; verify token diambil dari tab **Channels** pada builder.
+- Pesan masuk → engine yang sama (rules → retrieval → LLM) → balasan dikirim via Graph API
+  (`{phone_number_id}/messages` / `me/messages`) bila access token diisi.
+- **Mode dry-run**: tanpa token, balasan tetap diproses & dikembalikan di response webhook —
+  alur bisa diuji penuh, plus tombol *Simulasikan WhatsApp/Instagram* di dashboard.
+
+## Analitik mendalam per agent
+
+Tab **Analitik** di builder + `GET /api/v1/analytics/agents/{id}`:
+percakapan 14 hari, distribusi channel (widget/simulator/whatsapp/instagram), histogram jam sibuk,
+top knowledge sources yang dikutip, split engine, CSAT & resolusi, rata-rata latency.
+
 ## Cara kerja engine AI
 
 1. **Rules (jika→maka)** — dicek pertama; cocok untuk promo, jam operasional, dsb.
@@ -110,6 +135,8 @@ Mengikuti mock referensi: kanvas lavender *aurora* + panel kaca (glassmorphism),
 `#7C5CF6`, kartu putih radius 20px, hero banner *dark-violet* dengan orb bercahaya + waveform live,
 kartu KPI ber-progress-bar, feed aktivitas ber-icon-tile, dan panel kanan bergaya jadwal.
 Widget popup memakai bahasa visual yang sama (header gradasi violet, bubble membulat, launcher gelap).
+Seluruh dashboard **mobile-responsive**: sidebar menjadi drawer + topbar, simulator menjadi overlay
+fullscreen di layar kecil, dan widget popup otomatis fullscreen di perangkat mobile.
 
 ## Environment variables
 
@@ -129,13 +156,14 @@ Lihat `.env.example`. Inti:
 ## Pengujian
 
 ```bash
-make test        # pytest backend (12 test: auth, CRUD, retrieval+SSE, rules,
-                 # widget e2e, origin allowlist, analytics, keys, embed)
+make test        # pytest backend (15 test: auth, CRUD, retrieval+SSE, rules,
+                 # widget e2e, origin allowlist, analytics, keys, embed,
+                 # settings LLM, channel dry-run + webhook Meta)
 make typecheck   # tsc web + widget
 npm run build:web  # build production Next.js
 ```
 
-Status di sandbox: ✅ 12/12 pytest lulus · ✅ typecheck web & widget · ✅ `next build` sukses ·
+Status di sandbox: ✅ 15/15 pytest lulus · ✅ typecheck web & widget · ✅ `next build` sukses ·
 ✅ E2E via proxy (login → simulate SSE → widget SSE → feedback → history).
 
 ## Struktur repo

@@ -6,7 +6,7 @@ import {
   ExternalLink,
   LayoutDashboard,
   LogOut,
-  MessageSquare,
+  Menu,
   PanelLeft,
   Plug,
   Search,
@@ -19,6 +19,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { api, setToken } from "@/lib/api";
 import type { User, Workspace } from "@/lib/types";
 import { cx, Kbd } from "@/components/ui";
+import MobileDrawer from "./MobileDrawer";
 
 const NAV = [
   { section: "Workspace", items: [
@@ -36,6 +37,7 @@ export default function Shell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [me, setMe] = useState<{ user: User; workspace: Workspace } | null>(null);
   const [ready, setReady] = useState(false);
+  const [drawer, setDrawer] = useState(false);
 
   useEffect(() => {
     api("/auth/me")
@@ -53,8 +55,31 @@ export default function Shell({ children }: { children: ReactNode }) {
   }
   if (!me) return null;
 
+  const logout = () => {
+    setToken(null);
+    api("/auth/logout", { method: "POST" }).finally(() => router.replace("/login"));
+  };
+
   return (
     <div className="app-bg min-h-screen">
+      {me && (
+        <>
+          {/* mobile top bar */}
+          <div className="glass sticky top-0 z-30 flex items-center gap-2 rounded-b-2xl px-3 py-2.5 lg:hidden">
+            <button onClick={() => setDrawer(true)} className="rounded-xl border border-line bg-white/70 p-2 text-ink">
+              <Menu size={17} />
+            </button>
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary-700 text-[13px] font-bold text-white">
+              S
+            </span>
+            <span className="flex-1 text-[15px] font-bold tracking-tight">Sapa AI</span>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/70 px-2.5 py-1 text-[10.5px] font-semibold text-ink">
+              <i className="h-1.5 w-1.5 rounded-full bg-success" /> normal
+            </span>
+          </div>
+          <MobileDrawer open={drawer} onClose={() => setDrawer(false)} me={me} onLogout={logout} />
+        </>
+      )}
       <div className="mx-auto flex min-h-screen max-w-[1720px] gap-0 p-0 lg:p-4">
         {/* sidebar ------------------------------------------------------ */}
         <aside className="glass sticky top-0 z-20 hidden h-screen w-[264px] shrink-0 flex-col rounded-none p-4 lg:flex lg:rounded-r-3xl lg:rounded-l-none xl:rounded-3xl xl:h-[calc(100vh-2rem)] xl:sticky xl:top-4">
@@ -121,10 +146,7 @@ export default function Shell({ children }: { children: ReactNode }) {
               </div>
               <button
                 title="Log out"
-                onClick={() => {
-                  setToken(null);
-                  api("/auth/logout", { method: "POST" }).finally(() => router.replace("/login"));
-                }}
+                onClick={logout}
                 className="rounded-lg p-1.5 text-ink-3 hover:bg-danger-soft hover:text-danger"
               >
                 <LogOut size={15} />
@@ -166,22 +188,3 @@ export function TopBar({
   );
 }
 
-export function MobileNav() {
-  return (
-    <div className="glass sticky top-0 z-20 mb-4 flex items-center gap-2 rounded-2xl p-2 lg:hidden">
-      <Link href="/" className="flex items-center gap-2 rounded-xl px-3 py-2 text-[13px] font-bold">
-        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-white">S</span>
-        Sapa AI
-      </Link>
-      <Link href="/agents" className="rounded-xl px-3 py-2 text-[13px] font-semibold text-ink-2">
-        <Bot size={16} />
-      </Link>
-      <Link href="/settings" className="rounded-xl px-3 py-2 text-[13px] font-semibold text-ink-2">
-        <Plug size={16} />
-      </Link>
-      <Link href="/demo" className="ml-auto rounded-xl px-3 py-2 text-[13px] font-semibold text-ink-2">
-        <MessageSquare size={16} />
-      </Link>
-    </div>
-  );
-}

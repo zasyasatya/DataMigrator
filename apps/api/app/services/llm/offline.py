@@ -33,8 +33,8 @@ _TONE_OPENERS = {
     "playful": ["Wih, pertanyaan bagus! ", "Siap laksanakan! ", "Okeoke, "],
 }
 _TONE_LEAD = {
-    "friendly": "Berdasarkan info yang saya punya, ",
-    "formal": "Berdasarkan dokumentasi kami, ",
+    "friendly": "berdasarkan info yang saya punya, ",
+    "formal": "berdasarkan dokumentasi kami, ",
     "casual": "jadi gini, ",
     "playful": "cekidot, ",
 }

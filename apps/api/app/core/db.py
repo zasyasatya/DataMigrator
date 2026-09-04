@@ -38,9 +38,11 @@ SessionLocal = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSe
 
 async def init_db() -> None:
     from app import models  # noqa: F401  (register mappers)
+    from app.core.migrate import ensure_columns
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        await conn.run_sync(ensure_columns)
 
 
 async def get_db() -> AsyncIterator[AsyncSession]:
