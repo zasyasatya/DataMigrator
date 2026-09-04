@@ -1,0 +1,15 @@
+{
+  "name": "@sapa/widget",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Embeddable popup chat widget for Sapa AI agents (single <script> tag).",
+  "main": "dist/widget.js",
+  "scripts": {
+    "build": "node build.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "typescript": "^5.7.0"
+  }
+}
