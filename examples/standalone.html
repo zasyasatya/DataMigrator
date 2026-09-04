@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <title>Contoh Integrasi Widget Sapa AI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      body { font-family: system-ui, sans-serif; margin: 0; background: #fbf9f6; color: #221b15; }
+      header { padding: 20px 32px; border-bottom: 1px solid #efe7dc; font-weight: 800; }
+      main { max-width: 720px; margin: 48px auto; padding: 0 24px; line-height: 1.6; }
+      code, pre { background: #171226; color: #ede9fe; border-radius: 10px; padding: 2px 6px; font-size: 13px; }
+      pre { padding: 14px; overflow: auto; }
+      .note { background: #f1edfc; border: 1px solid #e4d9ff; border-radius: 14px; padding: 14px 16px; font-size: 14px; }
+    </style>
+  </head>
+  <body>
+    <header>TOKO ANDA</header>
+    <main>
+      <h1>Integrasi 1 baris</h1>
+      <p>
+        Tempel snippet berikut sebelum <code>&lt;/body&gt;</code>. Ganti
+        <code>PK_ANDA</code> dengan public key agent dari dashboard
+        (Builder → tab <b>Integrasi</b>), dan sesuaikan host API bila tidak memakai proxy Next.js.
+      </p>
+      <pre>&lt;script src="http://localhost:8000/embed/widget.js" data-sapa-key="PK_ANDA" defer&gt;&lt;/script&gt;</pre>
+      <div class="note">
+        💡 Bila frontend Next.js Sapa AI ikut di-deploy (port 3000), gunakan
+        <code>src="https://domain-anda/embed/widget.js"</code> — request widget otomatis
+        di-proxy ke backend sehingga bebas masalah CORS/cookie.
+      </div>
+      <p>API programmatic (server-to-server) juga tersedia:</p>
+      <pre>curl -N -X POST http://localhost:8000/w/PK_ANDA/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message":"halo, ongkir ke Bandung?"}'</pre>
+    </main>
+
+    <!-- ⬇ INI SATU-SATUNYA BARIS YANG DIBUTUHKAN DI SITUS ANDA ⬇⬇ -->
+    <script src="http://localhost:8000/embed/widget.js" data-sapa-key="PK_ANDA" defer></script>
+  </body>
+</html>

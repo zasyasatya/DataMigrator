@@ -1,0 +1,38 @@
+# deps
+node_modules/
+.pnp
+.pnp.js
+
+# builds
+.next/
+out/
+dist/
+build/
+packages/widget/dist/
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# env & data
+.env
+.env.local
+.env.*.local
+data/
+*.db
+*.sqlite3
+
+# logs & misc
+*.log
+npm-debug.log*
+.DS_Store
+coverage/
+.turbo/
+.idea/
+.vscode/
+*.tsbuildinfo
