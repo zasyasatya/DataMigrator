@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -11,14 +13,33 @@ from app.api.routers import agents, analytics, auth, channels, conversations, em
 from app.api.routers import settings as settings_router
 from app.core.config import settings
 from app.core.db import SessionLocal, init_db
-from app.seed import seed
+from app.seed import ensure_admin, seed
+
+# Log bootstrap (admin/workspace/db) harus terlihat di `docker logs` / log Coolify,
+# karena di situlah penyebab "deploy sukses tapi tidak bisa login" paling cepat ketahuan.
+logging.basicConfig(
+    level=os.environ.get("LOG_LEVEL", "INFO").upper(),
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+)
+log = logging.getLogger("sapa.startup")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    log.info(
+        "boot: env=%s db=%s app_url=%s widget=%s",
+        settings.environment,
+        settings.database_url,
+        settings.app_url,
+        settings.widget_bundle,
+    )
     await init_db()
     async with SessionLocal() as db:
+        # 1) seed penuh (agent + knowledge + keys) hanya saat DB benar-benar kosong
         await seed(db)
+        # 2) jaminan admin: jalan setiap boot, memperbaiki DB produksi yang sudah
+        #    terisi (admin hilang / ADMIN_* diubah / workspace dangling)
+        await ensure_admin(db)
     yield
 
 

@@ -11,8 +11,11 @@
 # Catatan arsitektur:
 # - Widget popup (packages/widget) di-build di dalam image -> tidak ada
 #   prasyarat `npm run build:widget` di host saat deploy via image ini.
-# - Next.js me-rewrite /api/v1/*, /w/*, /embed/* ke API_INTERNAL_URL
-#   (default http://127.0.0.1:8000, satu host yang sama -> bebas drama CORS).
+# - Next.js mem-proxy /api/v1/*, /w/*, /embed/* ke API_INTERNAL_URL lewat
+#   route handler (dibaca saat RUNTIME, bukan dibekukan waktu build). Default
+#   http://127.0.0.1:8000 — sengaja IPv4 eksplisit, sebab `localhost` di
+#   container bisa resolve ke ::1 sementara uvicorn hanya listen IPv4.
+#   Satu host yang sama -> bebas drama CORS & cookie lintas-origin.
 # - SQLite default di /data/sapa.db (VOLUME /data). Untuk Postgres, isi
 #   DATABASE_URL=postgresql+asyncpg://... saat deploy.
 
@@ -78,10 +81,14 @@ RUN chmod +x ./start.sh \
 
 VOLUME ["/data"]
 
-# 3000 = dashboard (port utama untuk Coolify), 8000 = API (healthcheck/internal).
+# 3000 = dashboard (port utama untuk Coolify), 8000 = API (internal saja).
 EXPOSE 3000 8000
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=45s --retries=3 \
-  CMD python -c "import os,urllib.request;urllib.request.urlopen('http://127.0.0.1:'+os.environ.get('API_PORT','8000')+'/healthz',timeout=8).read()" || exit 1
+# Healthcheck memakai /healthz milik DASHBOARD (bukan API langsung): endpoint itu
+# ikut memverifikasi proxy runtime ke backend, sehingga container ditandai
+# unhealthy bila Next.js hidup tapi tidak bisa mencapai uvicorn — persis gejala
+# "deploy sukses tapi tidak bisa login".
+HEALTHCHECK --interval=30s --timeout=12s --start-period=60s --retries=3 \
+  CMD python -c "import os,urllib.request;urllib.request.urlopen('http://127.0.0.1:'+os.environ.get('PORT','3000')+'/healthz',timeout=10).read()" || exit 1
 
 CMD ["./start.sh"]

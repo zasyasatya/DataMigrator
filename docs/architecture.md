@@ -12,8 +12,11 @@ Monorepo tiga paket: dashboard Next.js, backend FastAPI, widget vanilla-TS.
 │   ├─ /agents/[id]    BUILDER: tab instruksi/knowledge/perilaku/       │
 │   │                  tampilan/integrasi/percakapan  +  SIMULATOR kanan│
 │   ├─ /settings       API keys, integrasi, & provider LLM (OpenAI)     │
-│   └─ /demo           situs pelanggan palsu utk uji popup widget       │
-│        │  rewrites same-origin: /api/v1/*, /w/*, /embed/*             │
+│   ├─ /demo           situs pelanggan palsu utk uji popup widget       │
+│   ├─ /landing        LANDING PAGE contoh + chatbot terintegrasi (SSR) │
+│   ├─ /healthz        diagnostik web + proxy ke API                    │
+│   └─ proxy RUNTIME   /api/v1/*, /w/*, /embed/* → API_INTERNAL_URL     │
+│        │             (route handler, dibaca tiap request)             │
 │        ▼                                                              │
 │  apps/api            FastAPI 0.141 + SQLAlchemy 2 async               │
 │   ├─ /api/v1/auth    login JWT-ish (HMAC) + cookie                    │
@@ -34,11 +37,40 @@ Monorepo tiga paket: dashboard Next.js, backend FastAPI, widget vanilla-TS.
 ## Kenapa integrasi *flawless*
 
 Dashboard Next.js me-*proxy* `/api/v1/*`, `/w/*`, dan `/embed/widget.js` ke
-FastAPI (**same-origin**, lihat `apps/web/next.config.ts`). Widget membaca origin
+FastAPI (**same-origin**, lihat `apps/web/lib/proxy.ts`). Widget membaca origin
 dari `src` script-nya sendiri, sehingga di situs pelanggan pun semua request pergi
 ke satu host yang sama → **tanpa konfigurasi CORS, cookie, atau preflight tambahan**.
 Origin tetap bisa dibatasi per-agent lewat *allowed origins* (dienforce server-side
 di `app/core/deps.py::check_origin` — origin tak dikenal ditolak 403).
+
+### Proxy harus runtime, bukan build-time
+
+Proxy dijalankan **route handler** App Router, bukan `rewrites()` di `next.config.ts`:
+
+```
+apps/web/app/api/v1/[...path]/route.ts   →  /api/v1/*
+apps/web/app/w/[...path]/route.ts        →  /w/*        (API publik widget, SSE)
+apps/web/app/embed/[...path]/route.ts    →  /embed/*    (widget.js)
+apps/web/app/embed/route.ts              →  /embed      (dokumentasi integrasi)
+apps/web/app/healthz/route.ts            →  diagnostik  (web + keterjangkauan API)
+                    semuanya memanggil lib/proxy.ts
+```
+
+Alasannya: `rewrites()` dievaluasi Next.js saat **build** dan dibekukan ke
+`.next/routes-manifest.json`, sehingga `API_INTERNAL_URL` yang di-set saat runtime
+di container **diabaikan** — proxy selalu menuju host hasil build
+(`http://localhost:8000`). Di compose (container web & api terpisah) tidak ada
+apa-apa di `localhost:8000`, dan di image all-in-one `localhost` bisa resolve ke
+IPv6 `::1` lebih dulu sementara uvicorn hanya listen IPv4 → `ECONNREFUSED`.
+Gejala keduanya identik: *deploy sukses, halaman login terbuka, tapi tidak bisa login*.
+
+`lib/proxy.ts` karenanya: membaca env **setiap request**, menormalkan
+`localhost`→`127.0.0.1`, meneruskan body sebagai stream (mendukung upload
+multipart), meneruskan `Set-Cookie` apa adanya (multi-cookie via `getSetCookie()`),
+menambahkan `x-forwarded-proto|host|uri` agar backend bisa memasang cookie
+`Secure` di balik Cloudflare/Coolify, men-*stream* SSE tanpa buffering
+(`cache-control: no-store, no-transform` + `x-accel-buffering: no`), dan
+mengembalikan **502 ber-JSON diagnostik** bila backend tak terjangkau.
 
 ## Alur request
 

@@ -60,8 +60,13 @@ services:
       dockerfile: apps/web/Dockerfile
     image: sapa-ai-web:latest
     ports:
-      # Port utama dashboard. Same-origin rewrite /api/v1/*, /w/*, /embed/*
+      # Port utama dashboard. Same-origin proxy /api/v1/*, /w/*, /embed/*
       # -> API_INTERNAL_URL, jadi tanpa konfigurasi CORS tambahan.
+      #
+      # PENTING: proxy ini dibaca saat RUNTIME oleh route handler
+      # (apps/web/app/{api/v1,w,embed}/[...path]/route.ts). Sebelumnya memakai
+      # `rewrites()` yang dibekukan saat build, sehingga nilai di bawah
+      # diabaikan dan container web selalu mencoba localhost:8000 -> login gagal.
       - "${PORT:-3000}:3000"
     environment:
       API_INTERNAL_URL: ${API_INTERNAL_URL:-http://api:8000}
@@ -70,6 +75,19 @@ services:
       api:
         condition: service_healthy
     restart: unless-stopped
+    healthcheck:
+      # /healthz milik web ikut memverifikasi proxy ke container `api`.
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 12s
+      retries: 3
+      start_period: 30s
 
   # --- Postgres opsional (produksi) -----------------------------------------
   # Cara pakai:

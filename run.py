@@ -195,15 +195,30 @@ def run_many(cmds: list[tuple[str, list[str], Path]]) -> int:
         out_q.put(None)
 
 
+def _export_api_url(api_port: int) -> None:
+    """Beri tahu dashboard ke mana proxy harus mengirim request.
+
+    Sejak proxy pindah dari `rewrites()` (build-time) ke route handler
+    (runtime), `API_INTERNAL_URL` benar-benar dibaca saat server jalan — jadi
+    `run.py --api-port 8100` kini tersambung dengan benar. Nilai dari user
+    (shell/.env) tetap dihormati.
+    """
+    if not os.environ.get("API_INTERNAL_URL"):
+        os.environ["API_INTERNAL_URL"] = f"http://127.0.0.1:{api_port}"
+
+
 def cmd_dev(a: argparse.Namespace) -> int:
     ensure_env_file()
     ensure_widget(allow_install=not a.no_install, allow_build=not a.no_build)
+    _export_api_url(a.api_port)
     procs: list[tuple[str, list[str], Path]] = []
     procs.append(("api", api_cmd(a.api_port, reload=not a.no_reload), ROOT))
     if not port_free(a.web_port):
         fail(f"port web {a.web_port} sudah dipakai — bebas kan dulu atau --web-port lain")
     procs.append(("web", web_cmd(a.web_port), WEB_DIR))
     log(f"dashboard http://localhost:{a.web_port} | api http://localhost:{a.api_port} (/docs)")
+    log(f"proxy dashboard -> {os.environ['API_INTERNAL_URL']}")
+    log(f"landing page contoh: http://localhost:{a.web_port}/landing?key=<pk_...>")
     log("login default admin@sapa.ai / admin123 — Ctrl+C untuk berhenti")
     return run_many(procs)
 
@@ -211,11 +226,12 @@ def cmd_dev(a: argparse.Namespace) -> int:
 def cmd_single(a: argparse.Namespace, which: str) -> int:
     ensure_env_file()
     if which == "api":
-        if which == "api":
-            ensure_widget(allow_install=not a.no_install, allow_build=not a.no_build)
+        ensure_widget(allow_install=not a.no_install, allow_build=not a.no_build)
         log(f"api http://localhost:{a.api_port} (/docs)")
         return run_many([("api", api_cmd(a.api_port, reload=not a.no_reload), ROOT)])
+    _export_api_url(a.api_port)
     log(f"dashboard http://localhost:{a.web_port}")
+    log(f"proxy dashboard -> {os.environ['API_INTERNAL_URL']}")
     return run_many([("web", web_cmd(a.web_port), WEB_DIR)])
 
 
