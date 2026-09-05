@@ -1,4 +1,4 @@
-.PHONY: install install-api build-widget dev-api dev-web build test test-api typecheck run docker-up verify
+.PHONY: install install-api build-widget dev-api dev-web build test test-api test-web typecheck run docker-up verify
 
 run:
 	python3 run.py
@@ -29,11 +29,16 @@ dev-web:
 build: build-widget
 	npm run build:web
 
-test: test-api typecheck
+test: test-api typecheck test-web
 	npm run build:widget
 
 test-api:
 	cd apps/api && .venv/bin/python -m pytest -q
+
+# Health check web tanpa server: hygiene email di server component (React #418),
+# markup SafeEmail, simulasi obfuscator, typecheck. Buktinya di live: make verify.
+test-web:
+	npm run test:web
 
 typecheck:
 	cd apps/web && npx tsc --noEmit

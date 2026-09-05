@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { api, setToken } from "@/lib/api";
 import { Button, Field, Input } from "@/components/ui";
+import SafeEmail from "@/components/SafeEmail";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -74,7 +75,7 @@ export default function LoginPage() {
             </Button>
           </div>
           <p className="mt-5 text-center text-[11.5px] text-ink-3">
-            Default seed: admin@sapa.ai / admin123 — ganti lewat env{" "}
+            Default seed: <SafeEmail local="admin" domain="sapa.ai" /> / admin123 — ganti lewat env{" "}
             <code className="font-semibold">ADMIN_PASSWORD</code>.
           </p>
         </form>
