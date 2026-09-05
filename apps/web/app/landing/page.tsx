@@ -11,6 +11,7 @@ import {
 import type { Metadata } from "next";
 import AskButton from "@/components/landing/AskButton";
 import ChatbotEmbed from "@/components/landing/ChatbotEmbed";
+import SafeEmail from "@/components/SafeEmail";
 
 /**
  * Contoh LANDING PAGE dengan chatbot Sapa AI terintegrasi.
@@ -60,7 +61,7 @@ const FAQ = [
   { q: "Berapa lama pengiriman ke luar Jawa?", a: "3-6 hari kerja. Ongkir flat Rp20.000, dan gratis untuk pembelian di atas Rp250.000." },
   { q: "Bisa bayar di tempat?", a: "Belum. Metode pembayaran yang tersedia: transfer BCA/Mandiri, QRIS, kartu kredit, dan cicilan 0% untuk order di atas Rp500.000." },
   { q: "Apakah dikirim dalam bentuk biji atau bubuk?", a: "Default biji utuh. Kalau mau digiling, sebutkan metode seduh Anda di catatan pesanan — kami giling sesaat sebelum dikirim." },
-  { q: "Bagaimana cara mengajukan pengembalian?", a: "Kirim foto produk dan nomor pesanan ke halo@acmestore.id atau lewat chat ini dalam 7 hari sejak paket diterima. Refund diproses maksimal 3 hari kerja." },
+  { q: "Bagaimana cara mengajukan pengembalian?", a: <>Kirim foto produk dan nomor pesanan ke <SafeEmail local="halo" domain="acmestore.id" /> atau lewat chat ini dalam 7 hari sejak paket diterima. Refund diproses maksimal 3 hari kerja.</> },
 ];
 
 export default function LandingPage() {
@@ -335,7 +336,7 @@ export default function LandingPage() {
             </span>
             <p className="mt-3 text-[12.5px] leading-relaxed text-[#6B5B47]">
               Jl. Braga No. 12, Bandung 40111
-              <br />(022) 555-0142 · halo@acmestore.id
+              <br />(022) 555-0142 · <SafeEmail local="halo" domain="acmestore.id" />
             </p>
           </div>
           <div>

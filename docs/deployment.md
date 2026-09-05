@@ -105,6 +105,7 @@ menunggu API siap. Profil Postgres opsional tersedia (komentar `db` + `--profile
 | Sesi hilang setelah refresh di HTTPS | cookie harus `Secure` di balik TLS — sudah otomatis via `x-forwarded-proto`; pastikan reverse proxy meneruskan header itu |
 | `/embed/widget.js` 404 "belum di-build" | lokal/compose: `npm run build:widget` dulu (image Coolify sudah include) |
 | Widget tidak muncul di landing page | `/landing?key=pk_…` butuh public key; ambil di Builder → tab Integrasi. Lihat juga *allowed origins* |
+| Tombol "Tanya" mati di balik Cloudflare | Email Address Obfuscation Cloudflare menulis ulang teks email literal di HTML → hidrasi React gagal (error #418) → `AskButton`/`ChatbotEmbed` tidak menempel. Sejak fix ini, semua email di-render lewat `SafeEmail` (pola byte terpecah, tidak ada yang bisa di-obfuscate) — pastikan deploy memakai build terbaru, lalu buktikan lewat `npm run verify` bagian *7. SSR hygiene*; regresi dicegah oleh `npm run test:web` |
 | Widget 403 origin | tambah origin situs ke *allowed origins* agent (tab Integrasi) |
 | Dashboard kosong | `SEED_DEMO=1` (dev) atau buat agent + knowledge via builder |
 | Container restart berulang | `start.sh` sengaja mematikan container bila salah satu proses (API/web) mati, agar Coolify me-restart. Baca log untuk pesan `[start] FATAL` |

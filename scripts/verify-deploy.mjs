@@ -150,5 +150,35 @@ log("\n== 6. Auth lewat cookie saja ==");
 const me = await fetch(`${BASE}/api/v1/auth/me`, { headers: { Cookie: (cookie || "").split(";")[0], Origin: ORIGIN } });
 check("GET /auth/me dengan cookie", me.status === 200, `HTTP ${me.status}`);
 
+// --- 7. SSR hygiene: hidrasi React selamat dari rewrite CDN -------------------
+// Insiden "tombol Tanya mati": Email Address Obfuscation Cloudflare menulis
+// ulang teks email literal di HTML menjadi "[email protected]" + data-cfemail,
+// lalu menyusunnya kembali SETELAH hidrasi React dimulai → text mismatch →
+// React error #418 → AskButton/ChatbotEmbed tidak menempel. Halaman sekarang
+// merender email lewat SafeEmail (local/@/domain terpecah), jadi tidak ada
+// pola email utuh yang bisa di-obfuscate. Bagian ini membuktikan build yang
+// sedang live sudah memuat fix itu — lihat scripts/test-web.mjs.
+log("\n== 7. SSR hygiene (hidrasi React vs rewrite Cloudflare) ==");
+const EMAIL_RE = /[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+/;
+const CF_MARKERS = /data-cfemail|email-decode|cdn-cgi\/l\/email-protection/i;
+/** HTML yang dilihat pengunjung & React: tag script/style/input dibuang supaya
+ *  payload flight Next.js dan atribut form (yang aman dari obfuscator) tidak
+ *  memicu false positive. */
+const visibleBody = (h) => h.replace(/<script[\s\S]*?<\/script>/gi, "").replace(/<style[\s\S]*?<\/style>/gi, "").replace(/<input[^>]*>/gi, "");
+
+const landingRes = await fetch(`${BASE}/landing`, { headers: { Origin: ORIGIN } });
+const landingHtml = await landingRes.text();
+const landingBody = visibleBody(landingHtml);
+check("GET /landing", landingRes.status === 200, `HTTP ${landingRes.status}`);
+check("markup SafeEmail terkirim (build dengan fix ini sudah live)", landingBody.includes("data-sapa-email"));
+check("tidak ada pola email utuh di HTML body (tidak ada yang bisa di-obfuscate)", !EMAIL_RE.test(landingBody));
+check("tanpa marker obfuscation Cloudflare (data-cfemail / email-decode)", !CF_MARKERS.test(landingHtml));
+check("alamat email tetap utuh terbaca pengunjung (halo·acmestore.id)", landingBody.includes(">halo<") && landingBody.includes(">acmestore.id<"));
+
+const loginRes = await fetch(`${BASE}/login`, { headers: { Origin: ORIGIN } });
+const loginHtml = await loginRes.text();
+const loginBody = visibleBody(loginHtml);
+check("GET /login tanpa email literal di body & tanpa marker obfuscation", loginRes.status === 200 && !EMAIL_RE.test(loginBody) && !CF_MARKERS.test(loginHtml) && loginBody.includes("data-sapa-email"), `HTTP ${loginRes.status}`);
+
 log(`\n${failures === 0 ? "✅ SEMUA CHECK LULUS" : `❌ ${failures} CHECK GAGAL`}`);
 process.exit(failures === 0 ? 0 : 1);
